@@ -1,0 +1,24 @@
+Rapsys\UserBundle\Entity\Title:
+    type: mappedSuperclass
+    id:
+        id:
+            type: integer
+            generator: 
+                strategy: AUTO
+            options:
+                unsigned: true
+    fields:
+        short:
+            type: string
+            length: 4
+        title:
+            type: string
+            length: 16
+        created:
+            type: datetime
+        updated:
+            type: datetime
+#    oneToMany:
+#        users:
+#            targetEntity: User
+#            mappedBy: title

@@ -1,0 +1,8 @@
+services:
+    Rapsys\UserBundle\Controller\DefaultController:
+        tags: [ controller.service_arguments ]
+    Rapsys\UserBundle\Utils\Slugger:
+        arguments: [ "@service_container" ]
+#    rapsys_user.example:
+#        class: Rapsys\UserBundle\Example
+#        arguments: ["@service_id", "plain_value", "%parameter%"]

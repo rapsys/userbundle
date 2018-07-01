@@ -1,0 +1,21 @@
+Rapsys\UserBundle\Entity\Group:
+    type: mappedSuperclass
+    id:
+        id:
+            type: integer
+            generator: 
+                strategy: AUTO
+            options:
+                unsigned: true
+    fields:
+        role:
+            type: string
+            length: 20
+        created:
+            type: datetime
+        updated:
+            type: datetime
+#    manyToMany:
+#        users:
+#            targetEntity: User
+#            mappedBy: groups

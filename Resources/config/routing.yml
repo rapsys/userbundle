@@ -1,0 +1,21 @@
+rapsys_user_login:
+    path:     /login
+    defaults: { _controller: RapsysUserBundle:Default:login }
+
+rapsys_user_recover:
+    path:     /recover
+    defaults: { _controller: RapsysUserBundle:Default:recover }
+
+rapsys_user_recover_mail:
+    path:     /recover/{mail}/{hash}
+    defaults: { _controller: RapsysUserBundle:Default:recoverMail }
+
+rapsys_user_register:
+    path:     /register
+    defaults: { _controller: RapsysUserBundle:Default:register }
+
+rapsys_user_logout:
+    path:     /logout
+
+rapsys_user_homepage:
+    path:     /

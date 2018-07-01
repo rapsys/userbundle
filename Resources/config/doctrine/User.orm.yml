@@ -1,0 +1,45 @@
+Rapsys\UserBundle\Entity\User:
+    type: mappedSuperclass
+    id:
+        id:
+            type: integer
+            generator: 
+                strategy: AUTO
+            options:
+                unsigned: true
+    fields:
+        mail:
+            type: string
+            unique: true
+            length: 254
+        pseudonym:
+            type: string
+            length: 32
+        forename:
+            type: string
+            length: 32
+        surname:
+            type: string
+            length: 32
+        password:
+            type: string
+            length: 60
+        active:
+            type: boolean
+            options:
+                default: true
+        created:
+            type: datetime
+        updated:
+            type: datetime
+    manyToOne:
+        title:
+            targetEntity: Title
+            inversedBy: users
+    manyToMany:
+        groups:
+            targetEntity: Group
+            inversedBy: users
+#see if usefull: https://stackoverflow.com/questions/34523699/how-to-extend-doctrine-entity-in-another-bundle
+#            joinTable:
+#                name: groups_users
