@@ -18,8 +18,8 @@ class RapsysUserExtension extends Extension {
 	 */
 	public function load(array $configs, ContainerBuilder $container) {
 		//Load configuration
-		$loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
-		$loader->load('services.yml');
+		$loader = new Loader\YamlFileLoader($container, new FileLocator('config/packages'));
+		$loader->load($this->getAlias().'.yaml');
 
 		//Load configuration
 		$configuration = $this->getConfiguration($configs, $container);
