@@ -16,7 +16,7 @@ class Configuration implements ConfigurationInterface {
 	 */
 	public function getConfigTreeBuilder() {
 		//Set tree builder
-		$treeBuilder = new TreeBuilder();
+		$treeBuilder = new TreeBuilder('parameters');
 
 		//The bundle default values
 		$defaults = [
@@ -83,7 +83,7 @@ class Configuration implements ConfigurationInterface {
 		//Here we define the parameters that are allowed to configure the bundle.
 		$treeBuilder
 			//Parameters
-			->root('parameters')
+			->getRootNode()
 				->addDefaultsIfNotSet()
 				->children()
 					->arrayNode('rapsys_user')
