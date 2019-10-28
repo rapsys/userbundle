@@ -4,20 +4,30 @@
     "license": "AGPL-3.0-or-later",
     "type": "symfony-bundle",
     "authors": [{
-	    "name": "Raphaël Gertz",
-	    "email": "userbundle@rapsys.eu"
+        "name": "Raphaël Gertz",
+        "email": "userbundle@rapsys.eu"
     }],
     "autoload": {
-	    "psr-4": {
-		    "Rapsys\\UserBundle\\": ""
-	    }
+        "psr-4": {
+            "Rapsys\\UserBundle\\": ""
+        }
     },
     "require": {
-        "php": ">=5.6"
+        "php": "*",
+        "doctrine/common": "*",
+        "symfony/config": "*",
+        "symfony/dependency-injection": "*",
+        "symfony/form": "*",
+        "symfony/framework-bundle": "*",
+        "symfony/routing": "*",
+        "symfony/security": "*"
+    },
+    "require-dev": {
+        "doctrine/data-fixtures": "*"
     },
     "extra": {
         "branch-alias": {
-		"dev-master": "master"
+            "dev-master": "master"
         }
     }
 }
