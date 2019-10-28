@@ -1,8 +1,0 @@
-{
-	"bundles": {
-		"Rapsys\\UserBundle": ["all"]
-	},
-	"copy-from-package": {
-		"config/": "%CONFIG_DIR%/"
-	}
-}
