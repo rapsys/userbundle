@@ -2,7 +2,9 @@
 
 namespace Rapsys\UserBundle\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Bundle\FrameworkBundle\Translation\Translator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
@@ -10,13 +12,27 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Form\FormError;
 use Rapsys\UserBundle\Utils\Slugger;
 
-class DefaultController extends Controller {
+class DefaultController extends AbstractController {
+	//Config array
+	protected $config;
+
+	//Translator instance
+	protected $translator;
+
+	public function __construct(ContainerInterface $container, Translator $translator) {
+		//Retrieve config
+		$this->config = $container->getParameter($this->getAlias());
+
+		//Set the translator
+		$this->translator = $translator;
+	}
+
 	//FIXME: we need to change the $this->container->getParameter($alias.'.xyz') to $this->container->getParameter($alias)['xyz']
 	public function loginAction(Request $request, AuthenticationUtils $authenticationUtils) {
 		//Get template
-		$template = $this->container->getParameter(($alias = $this->getAlias()).'.login.template');
+		$template = $this->config['login']['template'];
 		//Get context
-		$context = $this->container->getParameter($alias.'.login.context');
+		$context = $this->config['login']['context'];
 
 		//Create the form according to the FormType created previously.
 		//And give the proper parameters
@@ -28,11 +44,8 @@ class DefaultController extends Controller {
 
 		//Get the login error if there is one
 		if ($error = $authenticationUtils->getLastAuthenticationError()) {
-			//Get translator
-			$trans = $this->get('translator');
-
 			//Get translated error
-			$error = $trans->trans($error->getMessageKey());
+			$error = $this->translator->trans($error->getMessageKey());
 
 			//Add error message to mail field
 			$form->get('mail')->addError(new FormError($error));
@@ -49,28 +62,28 @@ class DefaultController extends Controller {
 
 	public function registerAction(Request $request, UserPasswordEncoderInterface $encoder) {
 		//Get mail template
-		$mailTemplate = $this->container->getParameter(($alias = $this->getAlias()).'.register.mail_template');
+		$mailTemplate = $this->config['register']['mail_template'];
 		//Get mail context
-		$mailContext = $this->container->getParameter($alias.'.register.mail_context');
+		$mailContext = $this->config['register']['mail_context'];
 		//Get template
-		$template = $this->container->getParameter($alias.'.register.template');
+		$template = $this->config['register']['template'];
 		//Get context
-		$context = $this->container->getParameter($alias.'.register.context');
+		$context = $this->config['register']['context'];
 		//Get home name
-		$homeName = $this->container->getParameter($alias.'.contact.home_name');
+		$homeName = $this->config['contact']['home_name'];
 		//Get home args
-		$homeArgs = $this->container->getParameter($alias.'.contact.home_args');
+		$homeArgs = $this->config['contact']['home_args'];
 		//Get contact name
-		$contactName = $this->container->getParameter($alias.'.contact.name');
+		$contactName = $this->config['contact']['name'];
 		//Get contact mail
-		$contactMail = $this->container->getParameter($alias.'.contact.mail');
+		$contactMail = $this->config['contact']['mail'];
 		//TODO: check if doctrine orm replacement is enough with default classes here
 		//Get class user
-		$classUser = $this->container->getParameter($alias.'.class.user');
+		$classUser = $this->config['class']['user'];
 		//Get class group
-		$classGroup = $this->container->getParameter($alias.'.class.group');
+		$classGroup = $this->config['class']['group'];
 		//Get class title
-		$classTitle = $this->container->getParameter($alias.'.class.title');
+		$classTitle = $this->config['class']['title'];
 
 		//Create the form according to the FormType created previously.
 		//And give the proper parameters
@@ -86,23 +99,20 @@ class DefaultController extends Controller {
 			$form->handleRequest($request);
 
 			if ($form->isValid()) {
-				//Get translator
-				$trans = $this->get('translator');
-
 				//Set data
 				$data = $form->getData();
 
 				//Translate title
-				$mailContext['title'] = $trans->trans($mailContext['title']);
+				$mailContext['title'] = $this->translator->trans($mailContext['title']);
 
 				//Translate title
-				$mailContext['subtitle'] = $trans->trans($mailContext['subtitle'], array('%name%' => $data['forename'].' '.$data['surname'].' ('.$data['pseudonym'].')'));
+				$mailContext['subtitle'] = $this->translator->trans($mailContext['subtitle'], array('%name%' => $data['forename'].' '.$data['surname'].' ('.$data['pseudonym'].')'));
 
 				//Translate subject
-				$mailContext['subject'] = $trans->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
+				$mailContext['subject'] = $this->translator->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
 
 				//Translate message
-				$mailContext['message'] = $trans->trans($mailContext['message'], array('%title%' => $mailContext['title']));
+				$mailContext['message'] = $this->translator->trans($mailContext['message'], array('%title%' => $mailContext['title']));
 
 				//Create message
 				$message = \Swift_Message::newInstance()
@@ -159,7 +169,7 @@ class DefaultController extends Controller {
 					}
 				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$form->get('mail')->addError(new FormError($trans->trans('Account already exists: %mail%', array('%mail%' => $data['mail']))));
+					$form->get('mail')->addError(new FormError($this->translator->trans('Account already exists: %mail%', array('%mail%' => $data['mail']))));
 				}
 			}
 		}
@@ -170,27 +180,27 @@ class DefaultController extends Controller {
 
 	public function recoverAction(Request $request, Slugger $slugger) {
 		//Get mail template
-		$mailTemplate = $this->container->getParameter(($alias = $this->getAlias()).'.recover.mail_template');
+		$mailTemplate = $this->config['recover']['mail_template'];
 		//Get mail context
-		$mailContext = $this->container->getParameter($alias.'.recover.mail_context');
+		$mailContext = $this->config['recover']['mail_context'];
 		//Get template
-		$template = $this->container->getParameter($alias.'.recover.template');
+		$template = $this->config['recover']['template'];
 		//Get context
-		$context = $this->container->getParameter($alias.'.recover.context');
+		$context = $this->config['recover']['context'];
 		//Get url name
-		$urlName = $this->container->getParameter($alias.'.recover.url_name');
+		$urlName = $this->config['recover']['url_name'];
 		//Get url args
-		$urlArgs = $this->container->getParameter($alias.'.recover.url_args');
+		$urlArgs = $this->config['recover']['url_args'];
 		//Get home name
-		$homeName = $this->container->getParameter($alias.'.contact.home_name');
+		$homeName = $this->config['contact']['home_name'];
 		//Get home args
-		$homeArgs = $this->container->getParameter($alias.'.contact.home_args');
+		$homeArgs = $this->config['contact']['home_args'];
 		//Get contact name
-		$contactName = $this->container->getParameter($alias.'.contact.name');
+		$contactName = $this->config['contact']['name'];
 		//Get contact mail
-		$contactMail = $this->container->getParameter($alias.'.contact.mail');
+		$contactMail = $this->config['contact']['mail'];
 		//Get class user
-		$classUser = $this->container->getParameter($alias.'.class.user');
+		$classUser = $this->config['class']['user'];
 
 		//Create the form according to the FormType created previously.
 		//And give the proper parameters
@@ -205,9 +215,6 @@ class DefaultController extends Controller {
 			$form->handleRequest($request);
 
 			if ($form->isValid()) {
-				//Get translator
-				$trans = $this->get('translator');
-
 				//Get doctrine
 				$doctrine = $this->getDoctrine();
 
@@ -215,18 +222,18 @@ class DefaultController extends Controller {
 				$data = $form->getData();
 
 				//Translate title
-				$mailContext['title'] = $trans->trans($mailContext['title']);
+				$mailContext['title'] = $this->translator->trans($mailContext['title']);
 
 				//Try to find user
 				if ($user = $doctrine->getRepository($classUser)->findOneByMail($data['mail'])) {
 					//Translate title
-					$mailContext['subtitle'] = $trans->trans($mailContext['subtitle'], array('%name%' => $user->getForename().' '.$user->getSurname().' ('.$user->getPseudonym().')'));
+					$mailContext['subtitle'] = $this->translator->trans($mailContext['subtitle'], array('%name%' => $user->getForename().' '.$user->getSurname().' ('.$user->getPseudonym().')'));
 
 					//Translate subject
-					$mailContext['subject'] = $trans->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
+					$mailContext['subject'] = $this->translator->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
 
 					//Translate message
-					$mailContext['raw'] = $trans->trans($mailContext['raw'], array('%title%' => $mailContext['title'], '%url%' => $this->get('router')->generate($urlName, $urlArgs+array('mail' => $slugger->short($user->getMail()), 'hash' => $slugger->hash($user->getPassword())), UrlGeneratorInterface::ABSOLUTE_URL)));
+					$mailContext['raw'] = $this->translator->trans($mailContext['raw'], array('%title%' => $mailContext['title'], '%url%' => $this->get('router')->generate($urlName, $urlArgs+array('mail' => $slugger->short($user->getMail()), 'hash' => $slugger->hash($user->getPassword())), UrlGeneratorInterface::ABSOLUTE_URL)));
 
 					//Create message
 					$message = \Swift_Message::newInstance()
@@ -252,7 +259,7 @@ class DefaultController extends Controller {
 				//Accout not found
 				} else {
 					//Add error message to mail field
-					$form->get('mail')->addError(new FormError($trans->trans('Unable to find account: %mail%', array('%mail%' => $data['mail']))));
+					$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account: %mail%', array('%mail%' => $data['mail']))));
 				}
 			}
 		}
@@ -263,27 +270,27 @@ class DefaultController extends Controller {
 
 	public function recoverMailAction(Request $request, UserPasswordEncoderInterface $encoder, Slugger $slugger, $mail, $hash) {
 		//Get mail template
-		$mailTemplate = $this->container->getParameter(($alias = $this->getAlias()).'.recover_mail.mail_template');
+		$mailTemplate = $this->config['recover_mail']['mail_template'];
 		//Get mail context
-		$mailContext = $this->container->getParameter($alias.'.recover_mail.mail_context');
+		$mailContext = $this->config['recover_mail']['mail_context'];
 		//Get template
-		$template = $this->container->getParameter($alias.'.recover_mail.template');
+		$template = $this->config['recover_mail']['template'];
 		//Get context
-		$context = $this->container->getParameter($alias.'.recover_mail.context');
+		$context = $this->config['recover_mail']['context'];
 		//Get url name
-		$urlName = $this->container->getParameter($alias.'.recover_mail.url_name');
+		$urlName = $this->config['recover_mail']['url_name'];
 		//Get url args
-		$urlArgs = $this->container->getParameter($alias.'.recover_mail.url_args');
+		$urlArgs = $this->config['recover_mail']['url_args'];
 		//Get home name
-		$homeName = $this->container->getParameter($alias.'.contact.home_name');
+		$homeName = $this->config['contact']['home_name'];
 		//Get home args
-		$homeArgs = $this->container->getParameter($alias.'.contact.home_args');
+		$homeArgs = $this->config['contact']['home_args'];
 		//Get contact name
-		$contactName = $this->container->getParameter($alias.'.contact.name');
+		$contactName = $this->config['contact']['name'];
 		//Get contact mail
-		$contactMail = $this->container->getParameter($alias.'.contact.mail');
+		$contactMail = $this->config['contact']['mail'];
 		//Get class user
-		$classUser = $this->container->getParameter($alias.'.class.user');
+		$classUser = $this->config['class']['user'];
 
 		//Create the form according to the FormType created previously.
 		//And give the proper parameters
@@ -295,9 +302,6 @@ class DefaultController extends Controller {
 
 		//Get doctrine
 		$doctrine = $this->getDoctrine();
-
-		//Get translator
-		$trans = $this->get('translator');
 
 		//Init not found
 		$notfound = 1;
@@ -316,19 +320,19 @@ class DefaultController extends Controller {
 					$data = $form->getData();
 
 					//Translate title
-					$mailContext['title'] = $trans->trans($mailContext['title']);
+					$mailContext['title'] = $this->translator->trans($mailContext['title']);
 
 					//Translate title
-					$mailContext['subtitle'] = $trans->trans($mailContext['subtitle'], array('%name%' => $user->getForename().' '.$user->getSurname().' ('.$user->getPseudonym().')'));
+					$mailContext['subtitle'] = $this->translator->trans($mailContext['subtitle'], array('%name%' => $user->getForename().' '.$user->getSurname().' ('.$user->getPseudonym().')'));
 
 					//Translate subject
-					$mailContext['subject'] = $trans->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
+					$mailContext['subject'] = $this->translator->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
 
 					//Set user password
 					$user->setPassword($encoder->encodePassword($user, $data['password']));
 
 					//Translate message
-					$mailContext['raw'] = $trans->trans($mailContext['raw'], array('%title%' => $mailContext['title'], '%url%' => $this->get('router')->generate($urlName, $urlArgs+array('mail' => $slugger->short($user->getMail()), 'hash' => $slugger->hash($user->getPassword())), UrlGeneratorInterface::ABSOLUTE_URL)));
+					$mailContext['raw'] = $this->translator->trans($mailContext['raw'], array('%title%' => $mailContext['title'], '%url%' => $this->get('router')->generate($urlName, $urlArgs+array('mail' => $slugger->short($user->getMail()), 'hash' => $slugger->hash($user->getPassword())), UrlGeneratorInterface::ABSOLUTE_URL)));
 
 					//Get manager
 					$manager = $doctrine->getManager();
