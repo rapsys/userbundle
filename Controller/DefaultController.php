@@ -11,6 +11,7 @@ use Symfony\Component\Form\FormError;
 use Rapsys\UserBundle\Utils\Slugger;
 
 class DefaultController extends Controller {
+	//FIXME: we need to change the $this->container->getParameter($alias.'.xyz') to $this->container->getParameter($alias)['xyz']
 	public function loginAction(Request $request, AuthenticationUtils $authenticationUtils) {
 		//Get template
 		$template = $this->container->getParameter(($alias = $this->getAlias()).'.login.template');
