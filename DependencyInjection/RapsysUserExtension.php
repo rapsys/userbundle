@@ -46,7 +46,7 @@ class RapsysUserExtension extends Extension {
 	 * @param $depth	The maxmium depth
 	 * @param $sep		The separator string
 	 */
-	/*protected function flatten($array, $path, $depth = 10, $sep = '.') {
+	/*protected function flatten($array, $path = '', $depth = 10, $sep = '.') {
 		//Init res
 		$res = array();
 
