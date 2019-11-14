@@ -3,7 +3,11 @@
 // src/Rapsys/UserBundle/Entity/User.php
 namespace Rapsys\UserBundle\Entity;
 
-class User implements \Symfony\Component\Security\Core\User\AdvancedUserInterface, \Serializable {
+use Rapsys\UserBundle\Entity\Group;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+
+class User implements UserInterface, \Serializable {
 	/**
 	 * @var integer
 	 */
@@ -64,7 +68,7 @@ class User implements \Symfony\Component\Security\Core\User\AdvancedUserInterfac
 	 */
 	public function __construct() {
 		$this->active = false;
-		$this->groups = new \Doctrine\Common\Collections\ArrayCollection();
+		$this->groups = new ArrayCollection();
 	}
 
 	/**
@@ -275,7 +279,7 @@ class User implements \Symfony\Component\Security\Core\User\AdvancedUserInterfac
 	 *
 	 * @return User
 	 */
-	public function addGroup(\Rapsys\UserBundle\Entity\Group $group) {
+	public function addGroup(Group $group) {
 		$this->groups[] = $group;
 
 		return $this;
@@ -286,7 +290,7 @@ class User implements \Symfony\Component\Security\Core\User\AdvancedUserInterfac
 	 *
 	 * @param \Rapsys\UserBundle\Entity\Group $group
 	 */
-	public function removeGroup(\Rapsys\UserBundle\Entity\Group $group) {
+	public function removeGroup(Group $group) {
 		$this->groups->removeElement($group);
 	}
 
@@ -300,7 +304,13 @@ class User implements \Symfony\Component\Security\Core\User\AdvancedUserInterfac
 	}
 
 	public function getRoles() {
-		return $this->groups->toArray();
+		$roles = [ 'ROLE_USER' ];
+
+		foreach($this->groups->toArray() as $group) {
+			$roles[] = $group->getRole();
+		}
+
+		return array_unique($roles);
 	}
 
 	public function getSalt() {
@@ -337,18 +347,7 @@ class User implements \Symfony\Component\Security\Core\User\AdvancedUserInterfac
 		) = unserialize($serialized);
 	}
 
-	public function isAccountNonExpired() {
-		return true;
-	}
-
-	public function isAccountNonLocked() {
-		return true;
-	}
-
-	public function isCredentialsNonExpired() {
-		return true;
-	}
-
+	//XXX: was from vendor/symfony/security-core/User/AdvancedUserInterface.php, see if it's used anymore
 	public function isEnabled() {
 		return $this->active;
 	}
