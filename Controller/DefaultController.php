@@ -2,15 +2,19 @@
 
 namespace Rapsys\UserBundle\Controller;
 
+use Rapsys\UserBundle\Utils\Slugger;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Bundle\FrameworkBundle\Translation\Translator;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\NamedAddress;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
-use Symfony\Component\Form\FormError;
-use Rapsys\UserBundle\Utils\Slugger;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class DefaultController extends AbstractController {
 	//Config array
@@ -19,7 +23,7 @@ class DefaultController extends AbstractController {
 	//Translator instance
 	protected $translator;
 
-	public function __construct(ContainerInterface $container, Translator $translator) {
+	public function __construct(ContainerInterface $container, TranslatorInterface $translator) {
 		//Retrieve config
 		$this->config = $container->getParameter($this->getAlias());
 
@@ -27,20 +31,13 @@ class DefaultController extends AbstractController {
 		$this->translator = $translator;
 	}
 
-	//FIXME: we need to change the $this->container->getParameter($alias.'.xyz') to $this->container->getParameter($alias)['xyz']
-	public function loginAction(Request $request, AuthenticationUtils $authenticationUtils) {
-		//Get template
-		$template = $this->config['login']['template'];
-		//Get context
-		$context = $this->config['login']['context'];
-
-		//Create the form according to the FormType created previously.
-		//And give the proper parameters
-		$form = $this->createForm('Rapsys\UserBundle\Form\LoginType', null, array(
-			// To set the action use $this->generateUrl('route_identifier')
-			'action' => $this->generateUrl('rapsys_user_login'),
+	public function login(Request $request, AuthenticationUtils $authenticationUtils) {
+		//Create the LoginType form and give the proper parameters
+		$form = $this->createForm($this->config['login']['view']['form'], null, [
+			//Set action to login route name and context
+			'action' => $this->generateUrl($this->config['route']['login']['name'], $this->config['route']['login']['context']),
 			'method' => 'POST'
-		));
+		]);
 
 		//Get the login error if there is one
 		if ($error = $authenticationUtils->getLastAuthenticationError()) {
@@ -57,161 +54,24 @@ class DefaultController extends AbstractController {
 		}
 
 		//Render view
-		return $this->render($template, $context+array('form' => $form->createView(), 'error' => $error));
+		return $this->render(
+			//Template
+			$this->config['login']['view']['name'],
+			//Context
+			['form' => $form->createView(), 'error' => $error]+$this->config['login']['view']['context']
+		);
 	}
 
-	public function registerAction(Request $request, UserPasswordEncoderInterface $encoder) {
-		//Get mail template
-		$mailTemplate = $this->config['register']['mail_template'];
-		//Get mail context
-		$mailContext = $this->config['register']['mail_context'];
-		//Get template
-		$template = $this->config['register']['template'];
-		//Get context
-		$context = $this->config['register']['context'];
-		//Get home name
-		$homeName = $this->config['contact']['home_name'];
-		//Get home args
-		$homeArgs = $this->config['contact']['home_args'];
-		//Get contact name
-		$contactName = $this->config['contact']['name'];
-		//Get contact mail
-		$contactMail = $this->config['contact']['mail'];
-		//TODO: check if doctrine orm replacement is enough with default classes here
-		//Get class user
-		$classUser = $this->config['class']['user'];
-		//Get class group
-		$classGroup = $this->config['class']['group'];
-		//Get class title
-		$classTitle = $this->config['class']['title'];
-
-		//Create the form according to the FormType created previously.
-		//And give the proper parameters
-		$form = $this->createForm('Rapsys\UserBundle\Form\RegisterType', null, array(
-			// To set the action use $this->generateUrl('route_identifier')
-			'class_title' => $classTitle,
-			'action' => $this->generateUrl('rapsys_user_register'),
+	public function recover(Request $request, Slugger $slugger, MailerInterface $mailer) {
+		//Create the RecoverType form and give the proper parameters
+		$form = $this->createForm($this->config['recover']['view']['form'], null, array(
+			//Set action to recover route name and context
+			'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
 			'method' => 'POST'
 		));
 
 		if ($request->isMethod('POST')) {
-			// Refill the fields in case the form is not valid.
-			$form->handleRequest($request);
-
-			if ($form->isValid()) {
-				//Set data
-				$data = $form->getData();
-
-				//Translate title
-				$mailContext['title'] = $this->translator->trans($mailContext['title']);
-
-				//Translate title
-				$mailContext['subtitle'] = $this->translator->trans($mailContext['subtitle'], array('%name%' => $data['forename'].' '.$data['surname'].' ('.$data['pseudonym'].')'));
-
-				//Translate subject
-				$mailContext['subject'] = $this->translator->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
-
-				//Translate message
-				$mailContext['message'] = $this->translator->trans($mailContext['message'], array('%title%' => $mailContext['title']));
-
-				//Create message
-				$message = \Swift_Message::newInstance()
-					->setSubject($mailContext['subject'])
-					->setFrom(array($contactMail => $contactName))
-					->setTo(array($data['mail'] => $data['forename'].' '.$data['surname']))
-					->setBody($mailContext['message'])
-					->addPart(
-						$this->renderView(
-							$mailTemplate,
-							$mailContext+array(
-								'home' => $this->get('router')->generate($homeName, $homeArgs, UrlGeneratorInterface::ABSOLUTE_URL)
-							)
-						),
-						'text/html'
-					);
-
-				//Get doctrine
-				$doctrine = $this->getDoctrine();
-
-				//Get manager
-				$manager = $doctrine->getManager();
-
-				//Init reflection
-				$reflection = new \ReflectionClass($classUser);
-
-				//Create new user
-				$user = $reflection->newInstance();
-
-				$user->setMail($data['mail']);
-				$user->setPseudonym($data['pseudonym']);
-				$user->setForename($data['forename']);
-				$user->setSurname($data['surname']);
-				$user->setPassword($encoder->encodePassword($user, $data['password']));
-				$user->setActive(true);
-				$user->setTitle($data['title']);
-				//TODO: see if we can't modify group constructor to set role directly from args
-				//XXX: see vendor/symfony/symfony/src/Symfony/Component/Security/Core/Role/Role.php
-				$user->addGroup($doctrine->getRepository($classGroup)->findOneByRole('ROLE_USER'));
-				$user->setCreated(new \DateTime('now'));
-				$user->setUpdated(new \DateTime('now'));
-
-				//Persist user
-				$manager->persist($user);
-
-				try {
-					//Send to database
-					$manager->flush();
-
-					//Send message
-					if ($this->get('mailer')->send($message)) {
-						//Redirect to cleanup the form
-						return $this->redirectToRoute('rapsys_user_register', array('sent' => 1));
-					}
-				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
-					//Add error message mail already exists
-					$form->get('mail')->addError(new FormError($this->translator->trans('Account already exists: %mail%', array('%mail%' => $data['mail']))));
-				}
-			}
-		}
-
-		//Render view
-		return $this->render($template, $context+array('form' => $form->createView(), 'sent' => $request->query->get('sent', 0)));
-	}
-
-	public function recoverAction(Request $request, Slugger $slugger) {
-		//Get mail template
-		$mailTemplate = $this->config['recover']['mail_template'];
-		//Get mail context
-		$mailContext = $this->config['recover']['mail_context'];
-		//Get template
-		$template = $this->config['recover']['template'];
-		//Get context
-		$context = $this->config['recover']['context'];
-		//Get url name
-		$urlName = $this->config['recover']['url_name'];
-		//Get url args
-		$urlArgs = $this->config['recover']['url_args'];
-		//Get home name
-		$homeName = $this->config['contact']['home_name'];
-		//Get home args
-		$homeArgs = $this->config['contact']['home_args'];
-		//Get contact name
-		$contactName = $this->config['contact']['name'];
-		//Get contact mail
-		$contactMail = $this->config['contact']['mail'];
-		//Get class user
-		$classUser = $this->config['class']['user'];
-
-		//Create the form according to the FormType created previously.
-		//And give the proper parameters
-		$form = $this->createForm('Rapsys\UserBundle\Form\RecoverType', null, array(
-			// To set the action use $this->generateUrl('route_identifier')
-			'action' => $this->generateUrl('rapsys_user_recover'),
-			'method' => 'POST'
-		));
-
-		if ($request->isMethod('POST')) {
-			// Refill the fields in case the form is not valid.
+			//Refill the fields in case the form is not valid.
 			$form->handleRequest($request);
 
 			if ($form->isValid()) {
@@ -220,83 +80,105 @@ class DefaultController extends AbstractController {
 
 				//Set data
 				$data = $form->getData();
-
-				//Translate title
-				$mailContext['title'] = $this->translator->trans($mailContext['title']);
 
 				//Try to find user
-				if ($user = $doctrine->getRepository($classUser)->findOneByMail($data['mail'])) {
-					//Translate title
-					$mailContext['subtitle'] = $this->translator->trans($mailContext['subtitle'], array('%name%' => $user->getForename().' '.$user->getSurname().' ('.$user->getPseudonym().')'));
+				if ($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($data['mail'])) {
+					//Set mail shortcut
+					$mail =& $this->config['recover']['mail'];
+
+					//Generate each route route
+					foreach($mail['route'] as $route => $tag) {
+						//Only process defined routes
+						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
+							//Process for recover mail url
+							if ($route == 'recover_mail') {
+								//Prepend recover context with tag
+								$this->config['route'][$route]['context'] = [
+									'recipient' => $slugger->short($user->getMail()),
+									'hash' => $slugger->hash($user->getPassword())
+								]+$this->config['route'][$route]['context'];
+							}
+							//Set the url in context
+							$mail['context'][$tag] = $this->get('router')->generate(
+								$this->config['route'][$route]['name'],
+								$this->config['route'][$route]['context'],
+								UrlGeneratorInterface::ABSOLUTE_URL
+							);
+
+						}
+					}
+
+					//Set recipient_name
+					$mail['context']['recipient_mail'] = $data['mail'];
+
+					//Set recipient_name
+					$mail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
+
+					//Init subject context
+					$subjectContext = [];
+
+					//Process each context pair
+					foreach($mail['context'] as $k => $v) {
+						//Reinsert each context pair with the key surrounded by %
+						$subjectContext['%'.$k.'%'] = $v;
+					}
 
 					//Translate subject
-					$mailContext['subject'] = $this->translator->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
-
-					//Translate message
-					$mailContext['raw'] = $this->translator->trans($mailContext['raw'], array('%title%' => $mailContext['title'], '%url%' => $this->get('router')->generate($urlName, $urlArgs+array('mail' => $slugger->short($user->getMail()), 'hash' => $slugger->hash($user->getPassword())), UrlGeneratorInterface::ABSOLUTE_URL)));
+					$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
 
 					//Create message
-					$message = \Swift_Message::newInstance()
-						->setSubject($mailContext['subject'])
-						->setFrom(array($contactMail => $contactName))
-						->setTo(array($user->getMail() => $user->getForename().' '.$user->getSurname()))
-						->setBody(strip_tags($mailContext['raw']))
-						->addPart(
-							$this->renderView(
-								$mailTemplate,
-								$mailContext+array(
-									'home' => $this->get('router')->generate($homeName, $homeArgs, UrlGeneratorInterface::ABSOLUTE_URL)
-								)
-							),
-							'text/html'
-						);
+					$message = (new TemplatedEmail())
+						//Set sender
+						->from(new NamedAddress($this->config['contact']['mail'], $this->config['contact']['name']))
+						//Set recipient
+						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+						->to(new NamedAddress($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
+						//Set subject
+						->subject($mail['subject'])
 
-					//Send message
-					if ($this->get('mailer')->send($message)) {
-						//Redirect to cleanup the form
-						return $this->redirectToRoute('rapsys_user_recover', array('sent' => 1));
+						//Set path to twig templates
+						->htmlTemplate($mail['html'])
+						->textTemplate($mail['text'])
+
+						//Set context
+						->context(['subject' => $mail['subject']]+$mail['context']);
+
+					//Try sending message
+					//XXX: mail delivery may silently fail
+					try {
+						//Send message
+						$mailer->send($message);
+
+						//Redirect on the same route with sent=1 to cleanup form
+						#return $this->redirectToRoute('rapsys_user_register', array('sent' => 1));
+						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
+					//Catch obvious transport exception
+					} catch(TransportExceptionInterface $e) {
+						//Add error message mail unreachable
+						$form->get('mail')->addError(new FormError($this->translator->trans('Account found but unable to contact: %mail%', array('%mail%' => $data['mail']))));
 					}
 				//Accout not found
 				} else {
 					//Add error message to mail field
-					$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account: %mail%', array('%mail%' => $data['mail']))));
+					$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account: %mail%', ['%mail%' => $data['mail']])));
 				}
 			}
 		}
 
 		//Render view
-		return $this->render($template, $context+array('form' => $form->createView(), 'sent' => $request->query->get('sent', 0)));
+		return $this->render(
+			//Template
+			$this->config['recover']['view']['name'],
+			//Context
+			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['recover']['view']['context']
+		);
 	}
 
-	public function recoverMailAction(Request $request, UserPasswordEncoderInterface $encoder, Slugger $slugger, $mail, $hash) {
-		//Get mail template
-		$mailTemplate = $this->config['recover_mail']['mail_template'];
-		//Get mail context
-		$mailContext = $this->config['recover_mail']['mail_context'];
-		//Get template
-		$template = $this->config['recover_mail']['template'];
-		//Get context
-		$context = $this->config['recover_mail']['context'];
-		//Get url name
-		$urlName = $this->config['recover_mail']['url_name'];
-		//Get url args
-		$urlArgs = $this->config['recover_mail']['url_args'];
-		//Get home name
-		$homeName = $this->config['contact']['home_name'];
-		//Get home args
-		$homeArgs = $this->config['contact']['home_args'];
-		//Get contact name
-		$contactName = $this->config['contact']['name'];
-		//Get contact mail
-		$contactMail = $this->config['contact']['mail'];
-		//Get class user
-		$classUser = $this->config['class']['user'];
-
-		//Create the form according to the FormType created previously.
-		//And give the proper parameters
-		$form = $this->createForm('Rapsys\UserBundle\Form\RecoverMailType', null, array(
-			// To set the action use $this->generateUrl('route_identifier')
-			'action' => $this->generateUrl('rapsys_user_recover_mail', array('mail' => $mail, 'hash' => $hash)),
+	public function recoverMail(Request $request, UserPasswordEncoderInterface $encoder, Slugger $slugger, MailerInterface $mailer, $recipient, $hash) {
+		//Create the RecoverType form and give the proper parameters
+		$form = $this->createForm($this->config['recover_mail']['view']['form'], null, array(
+			//Set action to recover route name and context
+			'action' => $this->generateUrl($this->config['route']['recover_mail']['name'], ['recipient' => $recipient, 'hash' => $hash]+$this->config['route']['recover_mail']['context']),
 			'method' => 'POST'
 		));
 
@@ -307,32 +189,23 @@ class DefaultController extends AbstractController {
 		$notfound = 1;
 
 		//Retrieve user
-		if (($user = $doctrine->getRepository($classUser)->findOneByMail($slugger->unshort($mail))) && $hash == $slugger->hash($user->getPassword())) {
+		if (($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($slugger->unshort($recipient))) && $hash == $slugger->hash($user->getPassword())) {
 			//User was found
 			$notfound = 0;
 
 			if ($request->isMethod('POST')) {
-				// Refill the fields in case the form is not valid.
+				//Refill the fields in case the form is not valid.
 				$form->handleRequest($request);
 
 				if ($form->isValid()) {
 					//Set data
 					$data = $form->getData();
 
-					//Translate title
-					$mailContext['title'] = $this->translator->trans($mailContext['title']);
-
-					//Translate title
-					$mailContext['subtitle'] = $this->translator->trans($mailContext['subtitle'], array('%name%' => $user->getForename().' '.$user->getSurname().' ('.$user->getPseudonym().')'));
-
-					//Translate subject
-					$mailContext['subject'] = $this->translator->trans($mailContext['subject'], array('%title%' => $mailContext['title']));
+					//set encoded password
+					$encoded = $encoder->encodePassword($user, $data['password']);
 
 					//Set user password
-					$user->setPassword($encoder->encodePassword($user, $data['password']));
-
-					//Translate message
-					$mailContext['raw'] = $this->translator->trans($mailContext['raw'], array('%title%' => $mailContext['title'], '%url%' => $this->get('router')->generate($urlName, $urlArgs+array('mail' => $slugger->short($user->getMail()), 'hash' => $slugger->hash($user->getPassword())), UrlGeneratorInterface::ABSOLUTE_URL)));
+					$user->setPassword($encoded);
 
 					//Get manager
 					$manager = $doctrine->getManager();
@@ -343,33 +216,230 @@ class DefaultController extends AbstractController {
 					//Send to database
 					$manager->flush();
 
-					//Create message
-					$message = \Swift_Message::newInstance()
-						->setSubject($mailContext['subject'])
-						->setFrom(array($contactMail => $contactName))
-						->setTo(array($user->getMail() => $user->getForename().' '.$user->getSurname()))
-						->setBody(strip_tags($mailContext['raw']))
-						->addPart(
-							$this->renderView(
-								$mailTemplate,
-								$mailContext+array(
-									'home' => $this->get('router')->generate($homeName, $homeArgs, UrlGeneratorInterface::ABSOLUTE_URL)
-								)
-							),
-							'text/html'
-						);
+					//Set mail shortcut
+					$mail =& $this->config['recover_mail']['mail'];
 
-					//Send message
-					if ($this->get('mailer')->send($message)) {
-						//Redirect to cleanup the form
-						return $this->redirectToRoute('rapsys_user_recover_mail', array('mail' => $mail, 'hash' => $hash, 'sent' => 1));
+					//Regen hash
+					$hash = $slugger->hash($encoded);
+
+					//Generate each route route
+					foreach($mail['route'] as $route => $tag) {
+						//Only process defined routes
+						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
+							//Process for recover mail url
+							if ($route == 'recover_mail') {
+								//Prepend recover context with tag
+								$this->config['route'][$route]['context'] = [
+									'recipient' => $recipient,
+									'hash' => $hash
+								]+$this->config['route'][$route]['context'];
+							}
+							//Set the url in context
+							$mail['context'][$tag] = $this->get('router')->generate(
+								$this->config['route'][$route]['name'],
+								$this->config['route'][$route]['context'],
+								UrlGeneratorInterface::ABSOLUTE_URL
+							);
+						}
 					}
+
+					//Set recipient_name
+					$mail['context']['recipient_mail'] = $user->getMail();
+
+					//Set recipient_name
+					$mail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
+
+					//Init subject context
+					$subjectContext = [];
+
+					//Process each context pair
+					foreach($mail['context'] as $k => $v) {
+						//Reinsert each context pair with the key surrounded by %
+						$subjectContext['%'.$k.'%'] = $v;
+					}
+
+					//Translate subject
+					$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
+
+					//Create message
+					$message = (new TemplatedEmail())
+						//Set sender
+						->from(new NamedAddress($this->config['contact']['mail'], $this->config['contact']['name']))
+						//Set recipient
+						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+						->to(new NamedAddress($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
+						//Set subject
+						->subject($mail['subject'])
+
+						//Set path to twig templates
+						->htmlTemplate($mail['html'])
+						->textTemplate($mail['text'])
+
+						//Set context
+						->context(['subject' => $mail['subject']]+$mail['context']);
+
+					//Try sending message
+					//XXX: mail delivery may silently fail
+					try {
+						//Send message
+						$mailer->send($message);
+
+						//Redirect on the same route with sent=1 to cleanup form
+						return $this->redirectToRoute($request->get('_route'), ['recipient' => $recipient, 'hash' => $hash, 'sent' => 1]+$request->get('_route_params'));
+					//Catch obvious transport exception
+					} catch(TransportExceptionInterface $e) {
+						//Add error message mail unreachable
+						$form->get('mail')->addError(new FormError($this->translator->trans('Account password updated but unable to contact: %mail%', array('%mail%' => $mail['context']['recipient_mail']))));
+					}
+				}
+			}
+		//Accout not found
+		} else {
+			//Add error message to mail field
+			$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account: %mail%', ['%mail%' => $slugger->unshort($recipient)])));
+		}
+
+		//Render view
+		return $this->render(
+			//Template
+			$this->config['recover_mail']['view']['name'],
+			//Context
+			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0), 'notfound' => $notfound]+$this->config['recover_mail']['view']['context']
+		);
+	}
+
+	public function register(Request $request, UserPasswordEncoderInterface $encoder, MailerInterface $mailer) {
+		//Create the RegisterType form and give the proper parameters
+		$form = $this->createForm($this->config['register']['view']['form'], null, array(
+			'class_title' => $this->config['class']['title'],
+			//Set action to register route name and context
+			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
+			'method' => 'POST'
+		));
+
+		if ($request->isMethod('POST')) {
+			// Refill the fields in case the form is not valid.
+			$form->handleRequest($request);
+
+			if ($form->isValid()) {
+				//Set data
+				$data = $form->getData();
+
+				//Set mail shortcut
+				$mail =& $this->config['register']['mail'];
+
+				//Generate each route route
+				foreach($mail['route'] as $route => $tag) {
+					if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
+						$mail['context'][$tag] = $this->get('router')->generate(
+							$this->config['route'][$route]['name'],
+							$this->config['route'][$route]['context'],
+							UrlGeneratorInterface::ABSOLUTE_URL
+						);
+					}
+				}
+
+				//Set recipient_name
+				$mail['context']['recipient_mail'] = $data['mail'];
+
+				//Set recipient_name
+				$mail['context']['recipient_name'] = trim($data['forename'].' '.$data['surname'].($data['pseudonym']?' ('.$data['pseudonym'].')':''));
+
+				//Init subject context
+				$subjectContext = [];
+
+				//Process each context pair
+				foreach($mail['context'] as $k => $v) {
+					//Reinsert each context pair with the key surrounded by %
+					$subjectContext['%'.$k.'%'] = $v;
+				}
+
+				//Translate subject
+				$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
+
+				//Create message
+				$message = (new TemplatedEmail())
+					//Set sender
+					->from(new NamedAddress($this->config['contact']['mail'], $this->config['contact']['name']))
+					//Set recipient
+					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+					->to(new NamedAddress($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
+					//Set subject
+					->subject($mail['subject'])
+
+					//Set path to twig templates
+					->htmlTemplate($mail['html'])
+					->textTemplate($mail['text'])
+
+					//Set context
+					->context(['subject' => $mail['subject']]+$mail['context']);
+
+				//Get doctrine
+				$doctrine = $this->getDoctrine();
+
+				//Get manager
+				$manager = $doctrine->getManager();
+
+				//Init reflection
+				$reflection = new \ReflectionClass($this->config['class']['user']);
+
+				//Create new user
+				$user = $reflection->newInstance();
+
+				$user->setMail($data['mail']);
+				$user->setPseudonym($data['pseudonym']);
+				$user->setForename($data['forename']);
+				$user->setSurname($data['surname']);
+				$user->setPhone($data['phone']);
+				$user->setPassword($encoder->encodePassword($user, $data['password']));
+				$user->setActive(true);
+				$user->setTitle($data['title']);
+
+				//XXX: For now there is no point in setting a role at subscription
+				//TODO: see if we can't modify group constructor to set role directly from args
+				//XXX: see vendor/symfony/symfony/src/Symfony/Component/Security/Core/Role/Role.php
+				#$user->addGroup($doctrine->getRepository($this->config['class']['group'])->findOneByRole('ROLE_USER'));
+
+				$user->setCreated(new \DateTime('now'));
+				$user->setUpdated(new \DateTime('now'));
+
+				//Persist user
+				$manager->persist($user);
+
+				//Try saving in database
+				try {
+					//Send to database
+					$manager->flush();
+
+					//Try sending message
+					//XXX: mail delivery may silently fail
+					try {
+						//Send message
+						$mailer->send($message);
+
+						//Redirect on the same route with sent=1 to cleanup form
+						#return $this->redirectToRoute('rapsys_user_register', array('sent' => 1));
+						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
+					//Catch obvious transport exception
+					} catch(TransportExceptionInterface $e) {
+						//Add error message mail unreachable
+						$form->get('mail')->addError(new FormError($this->translator->trans('Account created but unable to contact: %mail%', array('%mail%' => $data['mail']))));
+					}
+				//Catch double subscription
+				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+					//Add error message mail already exists
+					$form->get('mail')->addError(new FormError($this->translator->trans('Account already exists: %mail%', ['%mail%' => $data['mail']])));
 				}
 			}
 		}
 
 		//Render view
-		return $this->render($template, $context+array('form' => $form->createView(), 'sent' => $request->query->get('sent', 0), 'notfound' => $notfound));
+		return $this->render(
+			//Template
+			$this->config['register']['view']['name'],
+			//Context
+			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['register']['view']['context']
+		);
 	}
 
 	/**
