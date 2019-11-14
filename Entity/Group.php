@@ -3,7 +3,7 @@
 // src/Rapsys/UserBundle/Entity/Group.php
 namespace Rapsys\UserBundle\Entity;
 
-class Group extends \Symfony\Component\Security\Core\Role\Role {
+class Group {
 	/**
 	 * @var integer
 	 */
@@ -33,7 +33,7 @@ class Group extends \Symfony\Component\Security\Core\Role\Role {
 	 * Constructor
 	 * @param string $role The role name
 	 */
-	public function __construct($role) {
+	public function __construct(string $role) {
 		$this->role = (string) $role;
 		$this->users = new \Doctrine\Common\Collections\ArrayCollection();
 	}
@@ -57,6 +57,17 @@ class Group extends \Symfony\Component\Security\Core\Role\Role {
 	 * @return string
 	 */
 	public function getRole() {
+		return $this->role;
+	}
+
+	/**
+	 * Returns a string representation of the role.
+	 *
+	 * @xxx Replace the deprecated "extends \Symfony\Component\Security\Core\Role\Role"
+	 *
+	 * @return string
+	 */
+	public function __toString(): string {
 		return $this->role;
 	}
 
