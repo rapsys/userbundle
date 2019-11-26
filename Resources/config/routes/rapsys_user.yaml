@@ -1,0 +1,30 @@
+rapsys_user_login:
+    path: /login
+    controller: Rapsys\UserBundle\Controller\DefaultController::login
+    methods: GET|POST
+
+rapsys_user_recover:
+    path: /recover
+    controller: Rapsys\UserBundle\Controller\DefaultController::recover
+    methods: GET|POST
+
+rapsys_user_recover_mail:
+    path: /recover/{recipient}/{hash}
+    controller: Rapsys\UserBundle\Controller\DefaultController::recoverMail
+    requirements:
+        recipient: '[a-zA-Z0-9=_-]+'
+        hash: '[a-zA-Z0-9=_-]+'
+    methods: GET|POST
+
+rapsys_user_register:
+    path: /register
+    controller: Rapsys\UserBundle\Controller\DefaultController::register
+    methods: GET|POST
+
+rapsys_user_logout:
+    path: /logout
+    methods: GET
+
+rapsys_user_index:
+    path: /
+    methods: GET
