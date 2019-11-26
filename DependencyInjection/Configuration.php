@@ -26,8 +26,8 @@ class Configuration implements ConfigurationInterface {
 				'user' => 'Rapsys\\UserBundle\\Entity\\User'
 			],
 			'route' => [
-				'homepage' => [
-					'name' => 'rapsys_user_homepage',
+				'index' => [
+					'name' => 'rapsys_user_index',
 					'context' => []
 				],
 				'login' => [
@@ -52,6 +52,7 @@ class Configuration implements ConfigurationInterface {
 				'mail' => 'contact@example.com'
 			],
 			'login' => [
+				'route' => ['index' => 'index_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/login.html.twig',
 					'form' => 'Rapsys\UserBundle\Form\LoginType',
@@ -59,6 +60,7 @@ class Configuration implements ConfigurationInterface {
 				]
 			],
 			'recover' => [
+				'route' => ['index' => 'index_url', 'recover_mail' => 'recover_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/recover.html.twig',
 					'form' => 'Rapsys\UserBundle\Form\RecoverType',
@@ -68,11 +70,11 @@ class Configuration implements ConfigurationInterface {
 					'subject' => 'Welcome back!',
 					'html' => '@RapsysUser/mail/recover.html.twig',
 					'text' => '@RapsysUser/mail/recover.text.twig',
-					'route' => ['homepage' => 'homepage_url', 'recover_mail' => 'recover_url'],
 					'context' => []
 				]
 			],
 			'recover_mail' => [
+				'route' => ['index' => 'index_url', 'recover_mail' => 'recover_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/recover_mail.html.twig',
 					'form' => 'Rapsys\UserBundle\Form\RecoverMailType',
@@ -82,11 +84,11 @@ class Configuration implements ConfigurationInterface {
 					'subject' => 'Welcome back!',
 					'html' => '@RapsysUser/mail/recover_mail.html.twig',
 					'text' => '@RapsysUser/mail/recover_mail.text.twig',
-					'route' => ['homepage' => 'homepage_url'],
 					'context' => []
 				]
 			],
 			'register' => [
+				'route' => ['index' => 'index_url'],
 				'view' => [
 					'form' => 'Rapsys\UserBundle\Form\RegisterType',
 					'name' => '@RapsysUser/form/register.html.twig',
@@ -96,7 +98,6 @@ class Configuration implements ConfigurationInterface {
 					'subject' => 'Welcome!',
 					'html' => '@RapsysUser/mail/register.html.twig',
 					'text' => '@RapsysUser/mail/register.text.twig',
-					'route' => ['homepage' => 'homepage_url'],
 					'context' => []
 				]
 			]
@@ -125,13 +126,13 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('route')
 						->addDefaultsIfNotSet()
 						->children()
-							->arrayNode('homepage')
+							->arrayNode('index')
 								->addDefaultsIfNotSet()
 								->children()
-									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['route']['homepage']['name'])->end()
+									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['route']['index']['name'])->end()
 									->arrayNode('context')
 										->treatNullLike(array())
-										->defaultValue($defaults['route']['homepage']['context'])
+										->defaultValue($defaults['route']['index']['context'])
 										->scalarPrototype()->end()
 									->end()
 								->end()
@@ -192,6 +193,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('login')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('route')
+								->treatNullLike(array())
+								->defaultValue($defaults['login']['route'])
+								->scalarPrototype()->end()
+							->end()
 							->arrayNode('view')
 								->addDefaultsIfNotSet()
 								->children()
@@ -200,7 +206,7 @@ class Configuration implements ConfigurationInterface {
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['login']['view']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
@@ -209,6 +215,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('recover')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('route')
+								->treatNullLike(array())
+								->defaultValue($defaults['recover']['route'])
+								->scalarPrototype()->end()
+							->end()
 							->arrayNode('view')
 								->addDefaultsIfNotSet()
 								->children()
@@ -217,7 +228,7 @@ class Configuration implements ConfigurationInterface {
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['recover']['view']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
@@ -227,15 +238,10 @@ class Configuration implements ConfigurationInterface {
 									->scalarNode('subject')->cannotBeEmpty()->defaultValue($defaults['recover']['mail']['subject'])->end()
 									->scalarNode('html')->cannotBeEmpty()->defaultValue($defaults['recover']['mail']['html'])->end()
 									->scalarNode('text')->cannotBeEmpty()->defaultValue($defaults['recover']['mail']['text'])->end()
-									->arrayNode('route')
-										->treatNullLike(array())
-										->defaultValue($defaults['recover']['mail']['route'])
-										->scalarPrototype()->end()
-									->end()
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['recover']['mail']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
@@ -244,6 +250,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('recover_mail')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('route')
+								->treatNullLike(array())
+								->defaultValue($defaults['recover_mail']['route'])
+								->scalarPrototype()->end()
+							->end()
 							->arrayNode('view')
 								->addDefaultsIfNotSet()
 								->children()
@@ -252,7 +263,7 @@ class Configuration implements ConfigurationInterface {
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['recover_mail']['view']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
@@ -262,15 +273,10 @@ class Configuration implements ConfigurationInterface {
 									->scalarNode('subject')->cannotBeEmpty()->defaultValue($defaults['recover_mail']['mail']['subject'])->end()
 									->scalarNode('html')->cannotBeEmpty()->defaultValue($defaults['recover_mail']['mail']['html'])->end()
 									->scalarNode('text')->cannotBeEmpty()->defaultValue($defaults['recover_mail']['mail']['text'])->end()
-									->arrayNode('route')
-										->treatNullLike(array())
-										->defaultValue($defaults['recover_mail']['mail']['route'])
-										->scalarPrototype()->end()
-									->end()
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['recover_mail']['mail']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
@@ -279,6 +285,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('register')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('route')
+								->treatNullLike(array())
+								->defaultValue($defaults['register']['route'])
+								->scalarPrototype()->end()
+							->end()
 							->arrayNode('view')
 								->addDefaultsIfNotSet()
 								->children()
@@ -287,7 +298,7 @@ class Configuration implements ConfigurationInterface {
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['register']['view']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
@@ -297,15 +308,10 @@ class Configuration implements ConfigurationInterface {
 									->scalarNode('subject')->cannotBeEmpty()->defaultValue($defaults['register']['mail']['subject'])->end()
 									->scalarNode('html')->cannotBeEmpty()->defaultValue($defaults['register']['mail']['html'])->end()
 									->scalarNode('text')->cannotBeEmpty()->defaultValue($defaults['register']['mail']['text'])->end()
-									->arrayNode('route')
-										->treatNullLike(array())
-										->defaultValue($defaults['register']['mail']['route'])
-										->scalarPrototype()->end()
-									->end()
 									->arrayNode('context')
 										->treatNullLike(array())
 										->defaultValue($defaults['register']['mail']['context'])
-										->scalarPrototype()->end()
+										->variablePrototype()->end()
 									->end()
 								->end()
 							->end()
