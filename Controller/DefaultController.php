@@ -12,6 +12,7 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\NamedAddress;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Translation\TranslatorInterface;
@@ -23,12 +24,46 @@ class DefaultController extends AbstractController {
 	//Translator instance
 	protected $translator;
 
-	public function __construct(ContainerInterface $container, TranslatorInterface $translator) {
+	public function __construct(ContainerInterface $container, TranslatorInterface $translator, RouterInterface $router) {
 		//Retrieve config
 		$this->config = $container->getParameter($this->getAlias());
 
 		//Set the translator
 		$this->translator = $translator;
+
+		//Get current action
+		//XXX: we don't use this as it would be too slow, maybe ???
+		#$action = str_replace(self::getAlias().'_', '', $container->get('request_stack')->getCurrentRequest()->get('_route'));
+
+		//Inject every requested route in view and mail context
+		foreach($this->config as $tag => $current) {
+			//Look for entry with route subkey
+			if (!empty($current['route'])) {
+				//Generate url for both view and mail
+				foreach(['view', 'mail'] as $view) {
+					//Check that context key is usable
+					if (isset($current[$view]['context']) && is_array($current[$view]['context'])) {
+						//Process every routes
+						foreach($current['route'] as $route => $key) {
+							//Skip recover_mail route as it requires some parameters
+							if ($route == 'recover_mail') {
+								continue;
+							}
+							//Check that key is empty
+							if (!isset($current[$view]['context'][$key])) {
+								//Generate the route
+								$this->config[$tag][$view]['context'][$key] = $router->generate(
+									$this->config['route'][$route]['name'],
+									$this->config['route'][$route]['context'],
+									//Generate absolute url for mails
+									$view=='mail'?UrlGeneratorInterface::ABSOLUTE_URL:UrlGeneratorInterface::ABSOLUTE_PATH
+								);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	public function login(Request $request, AuthenticationUtils $authenticationUtils) {
@@ -87,7 +122,7 @@ class DefaultController extends AbstractController {
 					$mail =& $this->config['recover']['mail'];
 
 					//Generate each route route
-					foreach($mail['route'] as $route => $tag) {
+					foreach($this->config['recover']['route'] as $route => $tag) {
 						//Only process defined routes
 						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
 							//Process for recover mail url
@@ -118,7 +153,7 @@ class DefaultController extends AbstractController {
 					$subjectContext = [];
 
 					//Process each context pair
-					foreach($mail['context'] as $k => $v) {
+					foreach($mail['context']+$this->config['recover']['view']['context'] as $k => $v) {
 						//Reinsert each context pair with the key surrounded by %
 						$subjectContext['%'.$k.'%'] = $v;
 					}
@@ -141,7 +176,7 @@ class DefaultController extends AbstractController {
 						->textTemplate($mail['text'])
 
 						//Set context
-						->context(['subject' => $mail['subject']]+$mail['context']);
+						->context(['subject' => $mail['subject']]+$mail['context']+$this->config['recover']['view']['context']);
 
 					//Try sending message
 					//XXX: mail delivery may silently fail
@@ -223,7 +258,7 @@ class DefaultController extends AbstractController {
 					$hash = $slugger->hash($encoded);
 
 					//Generate each route route
-					foreach($mail['route'] as $route => $tag) {
+					foreach($this->config['recover_mail']['route'] as $route => $tag) {
 						//Only process defined routes
 						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
 							//Process for recover mail url
@@ -253,7 +288,7 @@ class DefaultController extends AbstractController {
 					$subjectContext = [];
 
 					//Process each context pair
-					foreach($mail['context'] as $k => $v) {
+					foreach($mail['context']+$this->config['recover_mail']['view']['context'] as $k => $v) {
 						//Reinsert each context pair with the key surrounded by %
 						$subjectContext['%'.$k.'%'] = $v;
 					}
@@ -276,7 +311,7 @@ class DefaultController extends AbstractController {
 						->textTemplate($mail['text'])
 
 						//Set context
-						->context(['subject' => $mail['subject']]+$mail['context']);
+						->context(['subject' => $mail['subject']]+$mail['context']+$this->config['recover_mail']['view']['context']);
 
 					//Try sending message
 					//XXX: mail delivery may silently fail
@@ -318,7 +353,7 @@ class DefaultController extends AbstractController {
 		));
 
 		if ($request->isMethod('POST')) {
-			// Refill the fields in case the form is not valid.
+			//Refill the fields in case the form is not valid.
 			$form->handleRequest($request);
 
 			if ($form->isValid()) {
@@ -329,7 +364,7 @@ class DefaultController extends AbstractController {
 				$mail =& $this->config['register']['mail'];
 
 				//Generate each route route
-				foreach($mail['route'] as $route => $tag) {
+				foreach($this->config['register']['route'] as $route => $tag) {
 					if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
 						$mail['context'][$tag] = $this->get('router')->generate(
 							$this->config['route'][$route]['name'],
@@ -349,7 +384,7 @@ class DefaultController extends AbstractController {
 				$subjectContext = [];
 
 				//Process each context pair
-				foreach($mail['context'] as $k => $v) {
+				foreach($mail['context']+$this->config['register']['view']['context'] as $k => $v) {
 					//Reinsert each context pair with the key surrounded by %
 					$subjectContext['%'.$k.'%'] = $v;
 				}
@@ -372,7 +407,7 @@ class DefaultController extends AbstractController {
 					->textTemplate($mail['text'])
 
 					//Set context
-					->context(['subject' => $mail['subject']]+$mail['context']);
+					->context(['subject' => $mail['subject']]+$mail['context']+$this->config['register']['view']['context']);
 
 				//Get doctrine
 				$doctrine = $this->getDoctrine();
