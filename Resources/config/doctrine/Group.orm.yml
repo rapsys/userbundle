@@ -8,9 +8,9 @@ Rapsys\UserBundle\Entity\Group:
             options:
                 unsigned: true
     fields:
-        role:
+        title:
             type: string
-            length: 20
+            length: 16
         created:
             type: datetime
         updated:
