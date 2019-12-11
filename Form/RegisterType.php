@@ -19,22 +19,21 @@ class RegisterType extends AbstractType {
 	 * {@inheritdoc}
 	 */
 	public function buildForm(FormBuilderInterface $builder, array $options) {
-		return $builder->add('mail', EmailType::class, array('attr' => array('placeholder' => 'Your mail address'), 'constraints' => array(new NotBlank(array('message' => 'Please provide your mail')), new Email(array('message' => 'Your mail doesn\'t seems to be valid')))))
-			#'RapsysUserBundle:Title'
-			->add('title', EntityType::class, array('class' => $options['class_title'], 'choice_label' => 'title', 'attr' => array('placeholder' => 'Your title'), 'constraints' => array(new NotBlank(array('message' => 'Please provide your title')))))
-			->add('pseudonym', TextType::class, array('attr' => array('placeholder' => 'Your pseudonym'), 'constraints' => array(new NotBlank(array('message' => 'Please provide your pseudonym')))))
-			->add('forename', TextType::class, array('attr' => array('placeholder' => 'Your forename'), 'constraints' => array(new NotBlank(array('message' => 'Please provide your forename')))))
-			->add('surname', TextType::class, array('attr' => array('placeholder' => 'Your surname'), 'constraints' => array(new NotBlank(array('message' => 'Please provide your surname')))))
-			->add('password', RepeatedType::class, array('type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => array('attr' => array('placeholder' => 'Your password'), 'label' => 'Password'), 'second_options' => array('attr' => array('placeholder' => 'Your password confirmation'), 'label' => 'Confirm password'), 'options' => array('constraints' => array(new NotBlank(array('message' => 'Please provide your password'))))))
-			->add('submit', SubmitType::class, array('label' => 'Send', 'attr' => array('class' => 'submit')));
+		return $builder
+			->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])]])
+			->add('title', EntityType::class, ['class' => $options['class_title'], 'attr' => ['placeholder' => 'Your title'], 'constraints' => [new NotBlank(['message' => 'Please provide your title'])], 'choice_translation_domain' => true])
+			->add('pseudonym', TextType::class, ['attr' => ['placeholder' => 'Your pseudonym'], 'constraints' => [new NotBlank(['message' => 'Please provide your pseudonym'])]])
+			->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename'], 'constraints' => [new NotBlank(['message' => 'Please provide your forename'])]])
+			->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname'], 'constraints' => [new NotBlank(['message' => 'Please provide your surname'])]])
+			->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]]])
+			->add('submit', SubmitType::class, ['label' => 'Send', 'attr' => ['class' => 'submit']]);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function configureOptions(OptionsResolver $resolver) {
-		$resolver->setDefaults(['error_bubbling' => true]);
-		$resolver->setRequired('class_title');
+		$resolver->setDefaults(['error_bubbling' => true, 'class_title' => 'RapsysUserBundle:Title']);
 		$resolver->setAllowedTypes('class_title', 'string');
 	}
 

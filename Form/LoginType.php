@@ -16,9 +16,10 @@ class LoginType extends AbstractType {
 	 * {@inheritdoc}
 	 */
 	public function buildForm(FormBuilderInterface $builder, array $options) {
-		return $builder->add('mail', EmailType::class, array('attr' => array('placeholder' => 'Your mail address'), 'constraints' => array(new NotBlank(array('message' => 'Please provide your mail')), new Email(array('message' => 'Your mail doesn\'t seems to be valid')))))
-			->add('password', PasswordType::class, array('attr' => array('placeholder' => 'Your password'), 'constraints' => array(new NotBlank(array("message" => "Please provide your password")))))
-			->add('submit', SubmitType::class, array('label' => 'Send', 'attr' => array('class' => 'submit')));
+		return $builder
+			->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])]])
+			->add('password', PasswordType::class, ['attr' => ['placeholder' => 'Your password'], 'constraints' => [new NotBlank(['message' => 'Please provide your password'])]])
+			->add('submit', SubmitType::class, ['label' => 'Send', 'attr' => ['class' => 'submit']]);
 	}
 
 	/**
