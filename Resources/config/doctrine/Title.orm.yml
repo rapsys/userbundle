@@ -8,9 +8,6 @@ Rapsys\UserBundle\Entity\Title:
             options:
                 unsigned: true
     fields:
-        short:
-            type: string
-            length: 4
         title:
             type: string
             length: 16

@@ -14,11 +14,6 @@ class Title {
 	/**
 	 * @var string
 	 */
-	protected $short;
-
-	/**
-	 * @var string
-	 */
 	protected $title;
 
 	/**
@@ -50,28 +45,6 @@ class Title {
 	 */
 	public function getId() {
 		return $this->id;
-	}
-
-	/**
-	 * Set short
-	 *
-	 * @param string $short
-	 *
-	 * @return Title
-	 */
-	public function setShort($short) {
-		$this->short = $short;
-
-		return $this;
-	}
-
-	/**
-	 * Get short
-	 *
-	 * @return string
-	 */
-	public function getShort() {
-		return $this->short;
 	}
 
 	/**
@@ -169,5 +142,14 @@ class Title {
 	 */
 	public function getUsers() {
 		return $this->users;
+	}
+
+	/**
+	 * Returns a string representation of the title
+	 *
+	 * @return string
+	 */
+	public function __toString(): string {
+		return $this->title;
 	}
 }
