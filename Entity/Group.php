@@ -12,7 +12,7 @@ class Group {
 	/**
 	 * @var string
 	 */
-	protected $role;
+	protected $title;
 
 	/**
 	 * @var \DateTime
@@ -31,44 +31,43 @@ class Group {
 
 	/**
 	 * Constructor
-	 * @param string $role The role name
+	 *
+	 * @param string $title The group name
 	 */
-	public function __construct(string $role) {
-		$this->role = (string) $role;
+	public function __construct(string $title) {
+		$this->title = (string) $title;
 		$this->users = new \Doctrine\Common\Collections\ArrayCollection();
 	}
 
 	/**
-	 * Set role
+	 * Get id
 	 *
-	 * @param string $role
+	 * @return integer
+	 */
+	public function getId() {
+		return $this->id;
+	}
+
+	/**
+	 * Set title
+	 *
+	 * @param string $title The group name
 	 *
 	 * @return User
 	 */
-	public function setRole($role) {
-		$this->role = $role;
+	public function setTitle($title) {
+		$this->title = $title;
 
 		return $this;
 	}
 
 	/**
-	 * Get role
+	 * Get title
 	 *
 	 * @return string
 	 */
-	public function getRole() {
-		return $this->role;
-	}
-
-	/**
-	 * Returns a string representation of the role.
-	 *
-	 * @xxx Replace the deprecated "extends \Symfony\Component\Security\Core\Role\Role"
-	 *
-	 * @return string
-	 */
-	public function __toString(): string {
-		return $this->role;
+	public function getTitle() {
+		return $this->title;
 	}
 
 	/**
@@ -144,5 +143,23 @@ class Group {
 	 */
 	public function getUsers() {
 		return $this->users;
+	}
+
+	/**
+	 * Returns a string representation of the group
+	 *
+	 * @return string
+	 */
+	public function __toString(): string {
+		return $this->title;
+	}
+
+	/**
+	 * Get role
+	 *
+	 * @return string
+	 */
+	public function getRole() {
+		return 'ROLE_'.strtoupper($this->title);
 	}
 }
