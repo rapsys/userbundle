@@ -6,5 +6,6 @@ services:
         autowire: true
         tags: [ 'controller.service_arguments' ]
     #Register slugger utils service
-    Rapsys\UserBundle\Utils\Slugger:
+    rapsys.slugger:
+        class: 'Rapsys\UserBundle\Utils\Slugger'
         arguments: [ '@service_container' ]
