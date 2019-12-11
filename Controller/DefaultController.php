@@ -68,11 +68,19 @@ class DefaultController extends AbstractController {
 
 	public function login(Request $request, AuthenticationUtils $authenticationUtils) {
 		//Create the LoginType form and give the proper parameters
-		$form = $this->createForm($this->config['login']['view']['form'], null, [
+		$login = $this->createForm($this->config['login']['view']['form'], null, [
 			//Set action to login route name and context
 			'action' => $this->generateUrl($this->config['route']['login']['name'], $this->config['route']['login']['context']),
 			'method' => 'POST'
 		]);
+
+		//Init context
+		$context = [];
+
+		//Last username entered by the user
+		if ($lastUsername = $authenticationUtils->getLastUsername()) {
+			$login->get('mail')->setData($lastUsername);
+		}
 
 		//Get the login error if there is one
 		if ($error = $authenticationUtils->getLastAuthenticationError()) {
@@ -80,12 +88,25 @@ class DefaultController extends AbstractController {
 			$error = $this->translator->trans($error->getMessageKey());
 
 			//Add error message to mail field
-			$form->get('mail')->addError(new FormError($error));
-		}
+			$login->get('mail')->addError(new FormError($error));
 
-		//Last username entered by the user
-		if ($lastUsername = $authenticationUtils->getLastUsername()) {
-			$form->get('mail')->setData($lastUsername);
+			//Create the RecoverType form and give the proper parameters
+			$recover = $this->createForm($this->config['recover']['view']['form'], null, [
+				//Set action to recover route name and context
+				'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
+				'method' => 'POST'
+			]);
+
+			//Set mail from login form
+			$recover->get('mail')->setData($login->get('mail')->getData());
+
+			//Add recover error
+			$recover->addError(new FormError(
+				$this->translator->trans('Use this form to recover your account')
+			));
+
+			//Add recover form to context
+			$context['recover'] = $recover->createView();
 		}
 
 		//Render view
@@ -93,7 +114,7 @@ class DefaultController extends AbstractController {
 			//Template
 			$this->config['login']['view']['name'],
 			//Context
-			['form' => $form->createView(), 'error' => $error]+$this->config['login']['view']['context']
+			['login' => $login->createView()]+$context+$this->config['login']['view']['context']
 		);
 	}
 
@@ -220,14 +241,11 @@ class DefaultController extends AbstractController {
 		//Get doctrine
 		$doctrine = $this->getDoctrine();
 
-		//Init not found
-		$notfound = 1;
+		//Init found
+		$found = false;
 
 		//Retrieve user
-		if (($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($slugger->unshort($recipient))) && $hash == $slugger->hash($user->getPassword())) {
-			//User was found
-			$notfound = 0;
-
+		if (($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($slugger->unshort($recipient))) && $found = ($hash == $slugger->hash($user->getPassword()))) {
 			if ($request->isMethod('POST')) {
 				//Refill the fields in case the form is not valid.
 				$form->handleRequest($request);
@@ -324,14 +342,14 @@ class DefaultController extends AbstractController {
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
-						$form->get('mail')->addError(new FormError($this->translator->trans('Account password updated but unable to contact: %mail%', array('%mail%' => $mail['context']['recipient_mail']))));
+						$form->get('password')->get('first')->addError(new FormError($this->translator->trans('Account password updated but unable to contact: %mail%', array('%mail%' => $mail['context']['recipient_mail']))));
 					}
 				}
 			}
 		//Accout not found
 		} else {
 			//Add error message to mail field
-			$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account: %mail%', ['%mail%' => $slugger->unshort($recipient)])));
+			$form->addError(new FormError($this->translator->trans('Unable to find account: %mail%', ['%mail%' => $slugger->unshort($recipient)])));
 		}
 
 		//Render view
@@ -339,7 +357,7 @@ class DefaultController extends AbstractController {
 			//Template
 			$this->config['recover_mail']['view']['name'],
 			//Context
-			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0), 'notfound' => $notfound]+$this->config['recover_mail']['view']['context']
+			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0), 'found' => $found]+$this->config['recover_mail']['view']['context']
 		);
 	}
 
