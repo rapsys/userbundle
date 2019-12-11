@@ -6,6 +6,7 @@ namespace Rapsys\UserBundle\Entity;
 use Rapsys\UserBundle\Entity\Group;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\Common\Collections\ArrayCollection;
+use Rapsys\UserBundle\Entity\Title;
 
 class User implements UserInterface, \Serializable {
 	/**
@@ -64,7 +65,7 @@ class User implements UserInterface, \Serializable {
 	protected $groups;
 
 	/**
-	 * User constructor.
+	 * Constructor
 	 */
 	public function __construct() {
 		$this->active = false;
@@ -184,6 +185,8 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get password
 	 *
+	 * {@inheritdoc}
+	 *
 	 * @return string
 	 */
 	public function getPassword() {
@@ -259,7 +262,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Set title
 	 */
-	public function setTitle($title) {
+	public function setTitle(Title $title) {
 		$this->title = $title;
 
 		return $this;
@@ -268,7 +271,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get title
 	 */
-	public function getTitle() {
+	public function getTitle(): Title {
 		return $this->title;
 	}
 
@@ -303,37 +306,72 @@ class User implements UserInterface, \Serializable {
 		return $this->groups;
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
 	public function getRoles() {
-		$roles = [ 'ROLE_USER' ];
-
-		foreach($this->groups->toArray() as $group) {
-			$roles[] = $group->getRole();
-		}
-
-		return array_unique($roles);
+		//Get the unique roles list by id
+		return array_unique(array_reduce(
+			//Cast groups as array
+			$this->groups->toArray(),
+			//Reduce to an array of id => group tuples
+			function ($array, $group) {
+				$array[$group->getId()] = $group->getRole();
+				return $array;
+			},
+			//Init with ROLE_USER
+			//XXX: we assume that ROLE_USER has id 1 in database
+			[ 1 => 'ROLE_USER' ]
+		));
 	}
 
+	public function getRole() {
+		//Retrieve roles
+		$roles = $this->getRoles();
+
+		//Return the role with max id
+		//XXX: should be rewriten if it change in your configuration
+		return $roles[array_reduce(
+			array_keys($roles),
+			function($cur, $id) {
+				if ($id > $cur) {
+					return $id;
+				}
+				return $cur;
+			},
+			0
+		)];
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function getSalt() {
 		//No salt required with bcrypt
 		return null;
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
 	public function getUsername() {
 		return $this->mail;
 	}
 
-	public function eraseCredentials() {
-	}
+	/**
+	 * {@inheritdoc}
+	 */
+	public function eraseCredentials() {}
 
-	public function serialize() {
-		return serialize(array(
+	public function serialize(): string {
+		return serialize([
 			$this->id,
 			$this->mail,
 			$this->password,
 			$this->active,
 			$this->created,
 			$this->updated
-		));
+		]);
 	}
 
 	public function unserialize($serialized) {
@@ -350,5 +388,14 @@ class User implements UserInterface, \Serializable {
 	//XXX: was from vendor/symfony/security-core/User/AdvancedUserInterface.php, see if it's used anymore
 	public function isEnabled() {
 		return $this->active;
+	}
+
+	/**
+	 * Returns a string representation of the user
+	 *
+	 * @return string
+	 */
+	public function __toString(): string {
+		return $this->title.' '.$this->forename.' '.$this->surname;
 	}
 }
