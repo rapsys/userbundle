@@ -66,7 +66,7 @@ class Slugger {
 	}
 
 	//Short the string
-	public function short($string) {
+	public function short(string $string): string {
 		//Return string
 		$ret = '';
 
@@ -83,7 +83,7 @@ class Slugger {
 	}
 
 	//Unshort the string
-	public function unshort($string) {
+	public function unshort(string $string): string {
 		//Return string
 		$ret = '';
 
@@ -98,12 +98,12 @@ class Slugger {
 	}
 
 	//Crypt and base64uri encode string
-	public function hash($string) {
+	public function hash(string $string): string {
 		return str_replace(['+','/'], ['-','_'], base64_encode(crypt($string, $this->secret)));
 	}
 
 	//Convert string to safe slug
-	function slug($string) {
+	function slug(string $string): string {
 		return preg_replace('/[\/_|+ -]+/', '-', strtolower(trim(preg_replace('/[^a-zA-Z0-9\/_|+ -]/', '', str_replace(['\'', '"'], ' ', iconv('UTF-8', 'ASCII//TRANSLIT', $string))), '-')));
 	}
 }
