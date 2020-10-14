@@ -23,7 +23,7 @@ class Slugger {
 	//Retrieve secret and set offset from reduction
 	public function __construct(ContainerInterface $container) {
 		//Set secret
-		$this->secret = $container->getParameter('kernel.secret');
+		$this->secret = $_SERVER['APP_SECRET'] ?? $container->getParameter('kernel.secret');
 
 		//Pseudo-random alphabet
 		//XXX: use array flip and keys to workaround php "smart" that cast range('0', '9') as int instead of string
