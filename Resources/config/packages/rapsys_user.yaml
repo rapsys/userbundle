@@ -1,11 +1,11 @@
 #Service configuration
 services:
+    #Register slugger utils service
+    rapsys.slugger:
+        class: 'Rapsys\UserBundle\Utils\Slugger'
+        arguments: [ '@service_container' ]
     #Register default controller
     Rapsys\UserBundle\Controller\DefaultController:
         arguments: [ '@service_container', '@translator', '@router' ]
         autowire: true
         tags: [ 'controller.service_arguments' ]
-    #Register slugger utils service
-    rapsys.slugger:
-        class: 'Rapsys\UserBundle\Utils\Slugger'
-        arguments: [ '@service_container' ]
