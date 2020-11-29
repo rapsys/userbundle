@@ -1,7 +1,7 @@
 #Service configuration
 services:
     #Register slugger utils service
-    rapsys.slugger:
+    rapsys_user.slugger:
         class: 'Rapsys\UserBundle\Utils\Slugger'
         arguments: [ '@service_container' ]
     #Register default controller
