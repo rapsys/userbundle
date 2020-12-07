@@ -4,6 +4,9 @@ services:
     rapsys_user.slugger:
         class: 'Rapsys\UserBundle\Utils\Slugger'
         arguments: [ '@service_container' ]
+    #Register slugger utils alias
+    Rapsys\UserBundle\Utils\Slugger:
+        alias: 'rapsys_user.slugger'
     #Register default controller
     Rapsys\UserBundle\Controller\DefaultController:
         arguments: [ '@service_container', '@translator', '@router' ]
