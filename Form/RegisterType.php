@@ -13,6 +13,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Rapsys\UserBundle\Entity\Title;
 
 class RegisterType extends AbstractType {
 	/**
@@ -21,7 +22,7 @@ class RegisterType extends AbstractType {
 	public function buildForm(FormBuilderInterface $builder, array $options) {
 		return $builder
 			->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])]])
-			->add('title', EntityType::class, ['class' => $options['class_title'], 'attr' => ['placeholder' => 'Your title'], 'constraints' => [new NotBlank(['message' => 'Please provide your title'])], 'choice_translation_domain' => true])
+			->add('title', EntityType::class, ['class' => $options['class_title'], 'attr' => ['placeholder' => 'Your title'], 'constraints' => [new NotBlank(['message' => 'Please provide your title'])], 'choice_translation_domain' => true, 'data' => $options['title']])
 			->add('pseudonym', TextType::class, ['attr' => ['placeholder' => 'Your pseudonym'], 'constraints' => [new NotBlank(['message' => 'Please provide your pseudonym'])]])
 			->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename'], 'constraints' => [new NotBlank(['message' => 'Please provide your forename'])]])
 			->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname'], 'constraints' => [new NotBlank(['message' => 'Please provide your surname'])]])
@@ -33,8 +34,9 @@ class RegisterType extends AbstractType {
 	 * {@inheritdoc}
 	 */
 	public function configureOptions(OptionsResolver $resolver) {
-		$resolver->setDefaults(['error_bubbling' => true, 'class_title' => 'RapsysUserBundle:Title']);
+		$resolver->setDefaults(['error_bubbling' => true, 'class_title' => 'RapsysUserBundle:Title', 'title' => null]);
 		$resolver->setAllowedTypes('class_title', 'string');
+		$resolver->setAllowedTypes('title', [Title::class, 'null']);
 	}
 
 	/**
