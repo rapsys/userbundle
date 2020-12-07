@@ -20,10 +20,14 @@ class Configuration implements ConfigurationInterface {
 
 		//The bundle default values
 		$defaults = [
-	    		'class' => [
+			'class' => [
 				'group' => 'Rapsys\\UserBundle\\Entity\\Group',
 				'title' => 'Rapsys\\UserBundle\\Entity\\Title',
 				'user' => 'Rapsys\\UserBundle\\Entity\\User'
+			],
+			'default' => [
+				'title' => 'Mister',
+				'group' => [ 'User' ]
 			],
 			'route' => [
 				'index' => [
@@ -121,6 +125,17 @@ class Configuration implements ConfigurationInterface {
 							->scalarNode('group')->cannotBeEmpty()->defaultValue($defaults['class']['group'])->end()
 							->scalarNode('title')->cannotBeEmpty()->defaultValue($defaults['class']['title'])->end()
 							->scalarNode('user')->cannotBeEmpty()->defaultValue($defaults['class']['user'])->end()
+						->end()
+					->end()
+					->arrayNode('default')
+						->addDefaultsIfNotSet()
+						->children()
+							->scalarNode('title')->cannotBeEmpty()->defaultValue($defaults['default']['title'])->end()
+							->arrayNode('group')
+								->treatNullLike(array())
+								->defaultValue($defaults['default']['group'])
+								->scalarPrototype()->end()
+							->end()
 						->end()
 					->end()
 					->arrayNode('route')
