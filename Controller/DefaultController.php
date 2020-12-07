@@ -97,13 +97,12 @@ class DefaultController extends AbstractController {
 				'method' => 'POST'
 			]);
 
-			//Set mail from login form
-			$recover->get('mail')->setData($login->get('mail')->getData());
-
-			//Add recover error
-			$recover->addError(new FormError(
-				$this->translator->trans('Use this form to recover your account')
-			));
+			//Get recover mail entity
+			$recover->get('mail')
+				//Set mail from login form
+				->setData($login->get('mail')->getData())
+				//Add recover error
+				->addError(new FormError($this->translator->trans('Use this form to recover your account')));
 
 			//Add recover form to context
 			$context['recover'] = $recover->createView();
@@ -362,9 +361,13 @@ class DefaultController extends AbstractController {
 	}
 
 	public function register(Request $request, UserPasswordEncoderInterface $encoder, MailerInterface $mailer) {
+		//Get doctrine
+		$doctrine = $this->getDoctrine();
+
 		//Create the RegisterType form and give the proper parameters
 		$form = $this->createForm($this->config['register']['view']['form'], null, array(
 			'class_title' => $this->config['class']['title'],
+			'title' => $doctrine->getRepository($this->config['class']['title'])->findOneByTitle($this->config['default']['title']),
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
 			'method' => 'POST'
@@ -427,9 +430,6 @@ class DefaultController extends AbstractController {
 					//Set context
 					->context(['subject' => $mail['subject']]+$mail['context']+$this->config['register']['view']['context']);
 
-				//Get doctrine
-				$doctrine = $this->getDoctrine();
-
 				//Get manager
 				$manager = $doctrine->getManager();
 
@@ -448,10 +448,20 @@ class DefaultController extends AbstractController {
 				$user->setActive(true);
 				$user->setTitle($data['title']);
 
-				//XXX: For now there is no point in setting a role at subscription
-				//TODO: see if we can't modify group constructor to set role directly from args
-				//XXX: see vendor/symfony/symfony/src/Symfony/Component/Security/Core/Role/Role.php
-				#$user->addGroup($doctrine->getRepository($this->config['class']['group'])->findOneByRole('ROLE_USER'));
+				//Iterate on default group
+				foreach($this->config['default']['group'] as $i => $groupTitle) {
+					//Fetch group
+					if (($group = $doctrine->getRepository($this->config['class']['group'])->findOneByTitle($groupTitle))) {
+						//Set default group
+						//XXX: see vendor/symfony/security-core/Role/Role.php
+						$user->addGroup($group);
+					//Group not found
+					} else {
+						//Throw exception
+						//XXX: consider missing group as fatal
+						throw new \Exception(sprintf('Group from rapsys_user.default.group[%d] not found by title: %s', $i, $groupTitle));
+					}
+				}
 
 				$user->setCreated(new \DateTime('now'));
 				$user->setUpdated(new \DateTime('now'));
