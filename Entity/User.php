@@ -319,9 +319,10 @@ class User implements UserInterface, \Serializable {
 				$array[$group->getId()] = $group->getRole();
 				return $array;
 			},
-			//Init with ROLE_USER
-			//XXX: we assume that ROLE_USER has id 1 in database
-			[ 1 => 'ROLE_USER' ]
+			//Init with empty array
+			//XXX: on registration, add each group present in rapsys_user.default.group array to user
+			//XXX: see vendor/rapsys/userbundle/Controller/DefaultController.php +450
+			[]
 		));
 	}
 
@@ -329,17 +330,23 @@ class User implements UserInterface, \Serializable {
 		//Retrieve roles
 		$roles = $this->getRoles();
 
+		//With roles array empty
+		if ($roles === []) {
+			//Return null
+			return null;
+		}
+
 		//Return the role with max id
 		//XXX: should be rewriten if it change in your configuration
 		return $roles[array_reduce(
 			array_keys($roles),
 			function($cur, $id) {
-				if ($id > $cur) {
+				if ($cur === null || $id > $cur) {
 					return $id;
 				}
 				return $cur;
 			},
-			0
+			null
 		)];
 	}
 
