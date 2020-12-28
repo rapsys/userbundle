@@ -24,7 +24,14 @@ class DefaultController extends AbstractController {
 	//Translator instance
 	protected $translator;
 
-	public function __construct(ContainerInterface $container, TranslatorInterface $translator, RouterInterface $router) {
+	/**
+	 * Constructor
+	 *
+	 * @param ContainerInterface $container The containter instance
+	 * @param RouterInterface $router The router instance
+	 * @param TranslatorInterface $translator The translator instance
+	 */
+	public function __construct(ContainerInterface $container, RouterInterface $router, TranslatorInterface $translator) {
 		//Retrieve config
 		$this->config = $container->getParameter($this->getAlias());
 
@@ -34,6 +41,24 @@ class DefaultController extends AbstractController {
 		//Get current action
 		//XXX: we don't use this as it would be too slow, maybe ???
 		#$action = str_replace(self::getAlias().'_', '', $container->get('request_stack')->getCurrentRequest()->get('_route'));
+
+		//Set translate array
+		$translates = [];
+
+		//Look for keys to translate
+		if (!empty($this->config['translate'])) {
+			//Iterate on keys to translate
+			foreach($this->config['translate'] as $translate) {
+				//Set tmp
+				$tmp = null;
+				//Iterate on keys
+				foreach(array_reverse(explode('.', $translate)) as $curkey) {
+					$tmp = array_combine([$curkey], [$tmp]);
+				}
+				//Append tree
+				$translates = array_replace_recursive($translates, $tmp);
+			}
+		}
 
 		//Inject every requested route in view and mail context
 		foreach($this->config as $tag => $current) {
@@ -49,15 +74,102 @@ class DefaultController extends AbstractController {
 							if ($route == 'recover_mail') {
 								continue;
 							}
-							//Check that key is empty
-							if (!isset($current[$view]['context'][$key])) {
-								//Generate the route
-								$this->config[$tag][$view]['context'][$key] = $router->generate(
-									$this->config['route'][$route]['name'],
-									$this->config['route'][$route]['context'],
-									//Generate absolute url for mails
-									$view=='mail'?UrlGeneratorInterface::ABSOLUTE_URL:UrlGeneratorInterface::ABSOLUTE_PATH
-								);
+
+							//Set value
+							$value = $router->generate(
+								$this->config['route'][$route]['name'],
+								$this->config['route'][$route]['context'],
+								//Generate absolute url for mails
+								$view=='mail'?UrlGeneratorInterface::ABSOLUTE_URL:UrlGeneratorInterface::ABSOLUTE_PATH
+							);
+
+							//Multi level key
+							if (strpos($key, '.') !== false) {
+								//Set tmp
+								$tmp = $value;
+
+								//Iterate on key
+								foreach(array_reverse(explode('.', $key)) as $curkey) {
+									$tmp = array_combine([$curkey], [$tmp]);
+								}
+
+								//Set value
+								$this->config[$tag][$view]['context'] = array_replace_recursive($this->config[$tag][$view]['context'], $tmp);
+							//Single level key
+							} else {
+								//Set value
+								$this->config[$tag][$view]['context'][$key] = $value;
+							}
+						}
+
+						//Look for successful intersections
+						if (!empty(array_intersect_key($translates, $current[$view]['context']))) {
+							//Iterate on keys to translate
+							foreach($this->config['translate'] as $translate) {
+								//Set keys
+								$keys = explode('.', $translate);
+
+								//Set tmp
+								$tmp = $current[$view]['context'];
+
+								//Iterate on keys
+								foreach($keys as $curkey) {
+									//Get child key
+									$tmp = $tmp[$curkey];
+								}
+
+								//Translate tmp value
+								$tmp = $translator->trans($tmp);
+
+								//Iterate on keys
+								foreach(array_reverse($keys) as $curkey) {
+									//Set parent key
+									$tmp = array_combine([$curkey], [$tmp]);
+								}
+
+								//Set value
+								$this->config[$tag][$view]['context'] = array_replace_recursive($this->config[$tag][$view]['context'], $tmp);
+							}
+						}
+
+						//Get current locale
+						$currentLocale = $router->getContext()->getParameters()['_locale'];
+
+						//Iterate on locales excluding current one
+						foreach($this->config['locales'] as $locale) {
+							//Set titles
+							$titles = [];
+
+							//Iterate on other locales
+							foreach(array_diff($this->config['locales'], [$locale]) as $other) {
+								$titles[$other] = $translator->trans($this->config['languages'][$locale], [], null, $other);
+							}
+
+							//Get context path
+							$path = $router->getContext()->getPathInfo();
+
+							//Retrieve route matching path
+							$route = $router->match($path);
+
+							//Get route name
+							$name = $route['_route'];
+
+							//Unset route name
+							unset($route['_route']);
+
+							//With current locale
+							if ($locale == $currentLocale) {
+								//Set locale locales context
+								$this->config[$tag][$view]['context']['canonical'] = $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
+							} else {
+								//Set locale locales context
+								$this->config[$tag][$view]['context']['alternates'][] = [
+									'lang' => $locale,
+									'absolute' => $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
+									'relative' => $router->generate($name, ['_locale' => $locale]+$route),
+									'title' => implode('/', $titles),
+									'translated' => $translator->trans($this->config['languages'][$locale], [], null, $locale)
+								];
 							}
 						}
 					}
@@ -66,6 +178,13 @@ class DefaultController extends AbstractController {
 		}
 	}
 
+	/**
+	 * Login
+	 *
+	 * @param Request $request The request
+	 * @param AuthenticationUtils $authenticationUtils The authentication utils
+	 * @return Response The response
+	 */
 	public function login(Request $request, AuthenticationUtils $authenticationUtils) {
 		//Create the LoginType form and give the proper parameters
 		$login = $this->createForm($this->config['login']['view']['form'], null, [
@@ -117,6 +236,14 @@ class DefaultController extends AbstractController {
 		);
 	}
 
+	/**
+	 * Recover account
+	 *
+	 * @param Request $request The request
+	 * @param Slugger $slugger The slugger
+	 * @param MailerInterface $mailer The mailer
+	 * @return Response The response
+	 */
 	public function recover(Request $request, Slugger $slugger, MailerInterface $mailer) {
 		//Create the RecoverType form and give the proper parameters
 		$form = $this->createForm($this->config['recover']['view']['form'], null, array(
@@ -147,19 +274,17 @@ class DefaultController extends AbstractController {
 						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
 							//Process for recover mail url
 							if ($route == 'recover_mail') {
-								//Prepend recover context with tag
-								$this->config['route'][$route]['context'] = [
-									'recipient' => $slugger->short($user->getMail()),
-									'hash' => $slugger->hash($user->getPassword())
-								]+$this->config['route'][$route]['context'];
+								//Set the url in context
+								$mail['context'][$tag] = $this->get('router')->generate(
+									$this->config['route'][$route]['name'],
+									//Prepend recover context with tag
+									[
+										'recipient' => $slugger->short($user->getMail()),
+										'hash' => $slugger->hash($user->getPassword())
+									]+$this->config['route'][$route]['context'],
+									UrlGeneratorInterface::ABSOLUTE_URL
+								);
 							}
-							//Set the url in context
-							$mail['context'][$tag] = $this->get('router')->generate(
-								$this->config['route'][$route]['name'],
-								$this->config['route'][$route]['context'],
-								UrlGeneratorInterface::ABSOLUTE_URL
-							);
-
 						}
 					}
 
@@ -170,13 +295,7 @@ class DefaultController extends AbstractController {
 					$mail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
 
 					//Init subject context
-					$subjectContext = [];
-
-					//Process each context pair
-					foreach($mail['context']+$this->config['recover']['view']['context'] as $k => $v) {
-						//Reinsert each context pair with the key surrounded by %
-						$subjectContext['%'.$k.'%'] = $v;
-					}
+					$subjectContext = $this->flatten(array_replace_recursive($this->config['recover']['view']['context'], $mail['context']), null, '.', '%', '%');
 
 					//Translate subject
 					$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
@@ -196,7 +315,9 @@ class DefaultController extends AbstractController {
 						->textTemplate($mail['text'])
 
 						//Set context
-						->context(['subject' => $mail['subject']]+$mail['context']+$this->config['recover']['view']['context']);
+						//XXX: require recursive merge to avoid loosing subkeys
+						//['subject' => $mail['subject']]+$mail['context']+$this->config['recover']['view']['context']
+						->context(array_replace_recursive($this->config['recover']['view']['context'], $mail['context'], ['subject' => $mail['subject']]));
 
 					//Try sending message
 					//XXX: mail delivery may silently fail
@@ -215,7 +336,7 @@ class DefaultController extends AbstractController {
 				//Accout not found
 				} else {
 					//Add error message to mail field
-					$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account: %mail%', ['%mail%' => $data['mail']])));
+					$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account %mail%', ['%mail%' => $data['mail']])));
 				}
 			}
 		}
@@ -229,6 +350,17 @@ class DefaultController extends AbstractController {
 		);
 	}
 
+	/**
+	 * Recover account with mail link
+	 *
+	 * @param Request $request The request
+	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param Slugger $slugger The slugger
+	 * @param MailerInterface $mailer The mailer
+	 * @param string $recipient The shorted recipient mail address
+	 * @param string $hash The hashed password
+	 * @return Response The response
+	 */
 	public function recoverMail(Request $request, UserPasswordEncoderInterface $encoder, Slugger $slugger, MailerInterface $mailer, $recipient, $hash) {
 		//Create the RecoverType form and give the proper parameters
 		$form = $this->createForm($this->config['recover_mail']['view']['form'], null, array(
@@ -302,13 +434,7 @@ class DefaultController extends AbstractController {
 					$mail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
 
 					//Init subject context
-					$subjectContext = [];
-
-					//Process each context pair
-					foreach($mail['context']+$this->config['recover_mail']['view']['context'] as $k => $v) {
-						//Reinsert each context pair with the key surrounded by %
-						$subjectContext['%'.$k.'%'] = $v;
-					}
+					$subjectContext = $this->flatten(array_replace_recursive($this->config['recover_mail']['view']['context'], $mail['context']), null, '.', '%', '%');
 
 					//Translate subject
 					$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
@@ -328,7 +454,9 @@ class DefaultController extends AbstractController {
 						->textTemplate($mail['text'])
 
 						//Set context
-						->context(['subject' => $mail['subject']]+$mail['context']+$this->config['recover_mail']['view']['context']);
+						//XXX: require recursive merge to avoid loosing subkeys
+						//['subject' => $mail['subject']]+$mail['context']+$this->config['recover_mail']['view']['context']
+						->context(array_replace_recursive($this->config['recover_mail']['view']['context'], $mail['context'], ['subject' => $mail['subject']]));
 
 					//Try sending message
 					//XXX: mail delivery may silently fail
@@ -341,14 +469,15 @@ class DefaultController extends AbstractController {
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
-						$form->get('password')->get('first')->addError(new FormError($this->translator->trans('Account password updated but unable to contact: %mail%', array('%mail%' => $mail['context']['recipient_mail']))));
+						$form->get('password')->get('first')->addError(new FormError($this->translator->trans('Account %mail% updated but unable to contact', array('%mail%' => $mail['context']['recipient_mail']))));
 					}
 				}
 			}
 		//Accout not found
 		} else {
-			//Add error message to mail field
-			$form->addError(new FormError($this->translator->trans('Unable to find account: %mail%', ['%mail%' => $slugger->unshort($recipient)])));
+			//Add error in flash message
+			//XXX: prevent slugger reverse engineering by not displaying decoded recipient
+			#$this->addFlash('error', $this->translator->trans('Unable to find account %mail%', ['%mail%' => $slugger->unshort($recipient)]));
 		}
 
 		//Render view
@@ -360,6 +489,16 @@ class DefaultController extends AbstractController {
 		);
 	}
 
+	/**
+	 * Register an account
+	 *
+	 * @todo: activation link
+	 *
+	 * @param Request $request The request
+	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param MailerInterface $mailer The mailer
+	 * @return Response The response
+	 */
 	public function register(Request $request, UserPasswordEncoderInterface $encoder, MailerInterface $mailer) {
 		//Get doctrine
 		$doctrine = $this->getDoctrine();
@@ -402,13 +541,7 @@ class DefaultController extends AbstractController {
 				$mail['context']['recipient_name'] = trim($data['forename'].' '.$data['surname'].($data['pseudonym']?' ('.$data['pseudonym'].')':''));
 
 				//Init subject context
-				$subjectContext = [];
-
-				//Process each context pair
-				foreach($mail['context']+$this->config['register']['view']['context'] as $k => $v) {
-					//Reinsert each context pair with the key surrounded by %
-					$subjectContext['%'.$k.'%'] = $v;
-				}
+				$subjectContext = $this->flatten(array_replace_recursive($this->config['register']['view']['context'], $mail['context']), null, '.', '%', '%');
 
 				//Translate subject
 				$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
@@ -428,7 +561,9 @@ class DefaultController extends AbstractController {
 					->textTemplate($mail['text'])
 
 					//Set context
-					->context(['subject' => $mail['subject']]+$mail['context']+$this->config['register']['view']['context']);
+					//XXX: require recursive merge to avoid loosing subkeys
+					//['subject' => $mail['subject']]+$mail['context']+$this->config['register']['view']['context']
+					->context(array_replace_recursive($this->config['register']['view']['context'], $mail['context'], ['subject' => $mail['subject']]));
 
 				//Get manager
 				$manager = $doctrine->getManager();
@@ -486,12 +621,12 @@ class DefaultController extends AbstractController {
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
-						$form->get('mail')->addError(new FormError($this->translator->trans('Account created but unable to contact: %mail%', array('%mail%' => $data['mail']))));
+						$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% created but unable to contact', array('%mail%' => $data['mail']))));
 					}
 				//Catch double subscription
 				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$form->get('mail')->addError(new FormError($this->translator->trans('Account already exists: %mail%', ['%mail%' => $data['mail']])));
+					$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% already exists', ['%mail%' => $data['mail']])));
 				}
 			}
 		}
@@ -503,6 +638,37 @@ class DefaultController extends AbstractController {
 			//Context
 			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['register']['view']['context']
 		);
+	}
+
+	/**
+	 * Recursively flatten an array
+	 *
+	 * @param array $data The data tree
+	 * @param string|null $current The current prefix
+	 * @param string $sep The key separator
+	 * @param string $prefix The key prefix
+	 * @param string $suffix The key suffix
+	 * @return array The flattened data
+	 */
+	protected function flatten($data, $current = null, $sep = '.', $prefix = '', $suffix = '') {
+		//Init result
+		$ret = [];
+
+		//Look for data array
+		if (is_array($data)) {
+			//Iteare on each pair
+			foreach($data as $k => $v) {
+				//Merge flattened value in return array
+				$ret += $this->flatten($v, empty($current) ? $k : $current.$sep.$k, $sep, $prefix, $suffix);
+			}
+		//Look flat data
+		} else {
+			//Store data in flattened key
+			$ret[$prefix.$current.$suffix] = $data;
+		}
+
+		//Return result
+		return $ret;
 	}
 
 	/**

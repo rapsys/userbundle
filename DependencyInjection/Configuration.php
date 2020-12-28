@@ -51,6 +51,11 @@ class Configuration implements ConfigurationInterface {
 					'context' => []
 				]
 			],
+			'translate' => [],
+			'locales' => '%kernel.translator.fallbacks%',
+			'languages' => [
+				'en' => 'English'
+			],
 			'contact' => [
 				'name' => 'John Doe',
 				'mail' => 'contact@example.com'
@@ -197,6 +202,17 @@ class Configuration implements ConfigurationInterface {
 								->end()
 							->end()
 						->end()
+					->end()
+					->arrayNode('translate')
+						->treatNullLike(array())
+						->defaultValue($defaults['translate'])
+						->scalarPrototype()->end()
+					->end()
+					->scalarNode('locales')->cannotBeEmpty()->defaultValue($defaults['locales'])->end()
+					->arrayNode('languages')
+						->treatNullLike([])
+						->defaultValue($defaults['languages'])
+						->scalarPrototype()->end()
 					->end()
 					->arrayNode('contact')
 						->addDefaultsIfNotSet()
