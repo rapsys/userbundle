@@ -505,8 +505,8 @@ class DefaultController extends AbstractController {
 
 		//Create the RegisterType form and give the proper parameters
 		$form = $this->createForm($this->config['register']['view']['form'], null, array(
-			'class_title' => $this->config['class']['title'],
-			'title' => $doctrine->getRepository($this->config['class']['title'])->findOneByTitle($this->config['default']['title']),
+			'class_civility' => $this->config['class']['civility'],
+			'civility' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
 			'method' => 'POST'
@@ -581,7 +581,7 @@ class DefaultController extends AbstractController {
 				$user->setPhone($data['phone']);
 				$user->setPassword($encoder->encodePassword($user, $data['password']));
 				$user->setActive(true);
-				$user->setTitle($data['title']);
+				$user->setCivility($data['civility']);
 
 				//Iterate on default group
 				foreach($this->config['default']['group'] as $i => $groupTitle) {
