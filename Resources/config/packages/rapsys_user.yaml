@@ -7,6 +7,11 @@ services:
     #Register slugger utils alias
     Rapsys\UserBundle\Utils\Slugger:
         alias: 'rapsys_user.slugger'
+    #Register security context service
+    rapsys_user.access_decision_manager:
+        class: 'Symfony\Component\Security\Core\Authorization\AccessDecisionManager'
+        public: true
+        arguments: [ [ '@security.access.role_hierarchy_voter' ] ]
     #Register default controller
     Rapsys\UserBundle\Controller\DefaultController:
         arguments: [ '@service_container', '@router', '@translator' ]
