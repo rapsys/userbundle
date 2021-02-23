@@ -6,7 +6,7 @@ namespace Rapsys\UserBundle\Entity;
 use Rapsys\UserBundle\Entity\Group;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\Common\Collections\ArrayCollection;
-use Rapsys\UserBundle\Entity\Title;
+use Rapsys\UserBundle\Entity\Civility;
 
 class User implements UserInterface, \Serializable {
 	/**
@@ -55,9 +55,9 @@ class User implements UserInterface, \Serializable {
 	protected $updated;
 
 	/**
-	 * @var \Rapsys\UserBundle\Entity\Title
+	 * @var \Rapsys\UserBundle\Entity\Civility
 	 */
-	protected $title;
+	protected $civility;
 
 	/**
 	 * @var \Doctrine\Common\Collections\Collection
@@ -260,19 +260,19 @@ class User implements UserInterface, \Serializable {
 	}
 
 	/**
-	 * Set title
+	 * Set civility
 	 */
-	public function setTitle(Title $title) {
-		$this->title = $title;
+	public function setCivility(Civility $civility) {
+		$this->civility = $civility;
 
 		return $this;
 	}
 
 	/**
-	 * Get title
+	 * Get civility
 	 */
-	public function getTitle(): Title {
-		return $this->title;
+	public function getCivility(): Civility {
+		return $this->civility;
 	}
 
 	/**
@@ -326,6 +326,9 @@ class User implements UserInterface, \Serializable {
 		));
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
 	public function getRole() {
 		//Retrieve roles
 		$roles = $this->getRoles();
@@ -403,6 +406,6 @@ class User implements UserInterface, \Serializable {
 	 * @return string
 	 */
 	public function __toString(): string {
-		return $this->title.' '.$this->forename.' '.$this->surname;
+		return $this->civility.' '.$this->forename.' '.$this->surname;
 	}
 }

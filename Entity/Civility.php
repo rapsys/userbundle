@@ -3,9 +3,9 @@
 namespace Rapsys\UserBundle\Entity;
 
 /**
- * Title
+ * Civility
  */
-class Title {
+class Civility {
 	/**
 	 * @var integer
 	 */
@@ -52,7 +52,7 @@ class Title {
 	 *
 	 * @param string $title
 	 *
-	 * @return Title
+	 * @return Civility
 	 */
 	public function setTitle($title) {
 		$this->title = $title;
@@ -74,7 +74,7 @@ class Title {
 	 *
 	 * @param \DateTime $created
 	 *
-	 * @return Title
+	 * @return Civility
 	 */
 	public function setCreated($created) {
 		$this->created = $created;
@@ -96,7 +96,7 @@ class Title {
 	 *
 	 * @param \DateTime $updated
 	 *
-	 * @return Title
+	 * @return Civility
 	 */
 	public function setUpdated($updated) {
 		$this->updated = $updated;
@@ -118,7 +118,7 @@ class Title {
 	 *
 	 * @param \Rapsys\UserBundle\Entity\User $user
 	 *
-	 * @return Title
+	 * @return Civility
 	 */
 	public function addUser(\Rapsys\UserBundle\Entity\User $user) {
 		$this->users[] = $user;

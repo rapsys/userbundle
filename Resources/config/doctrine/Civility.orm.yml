@@ -1,4 +1,4 @@
-Rapsys\UserBundle\Entity\Title:
+Rapsys\UserBundle\Entity\Civility:
     type: mappedSuperclass
     id:
         id:
