@@ -33,8 +33,8 @@ Rapsys\UserBundle\Entity\User:
         updated:
             type: datetime
     manyToOne:
-        title:
-            targetEntity: Title
+        civility:
+            targetEntity: Civility
             inversedBy: users
     manyToMany:
         groups:
