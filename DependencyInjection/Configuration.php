@@ -22,11 +22,11 @@ class Configuration implements ConfigurationInterface {
 		$defaults = [
 			'class' => [
 				'group' => 'Rapsys\\UserBundle\\Entity\\Group',
-				'title' => 'Rapsys\\UserBundle\\Entity\\Title',
+				'civility' => 'Rapsys\\UserBundle\\Entity\\Civility',
 				'user' => 'Rapsys\\UserBundle\\Entity\\User'
 			],
 			'default' => [
-				'title' => 'Mister',
+				'civility' => 'Mister',
 				'group' => [ 'User' ]
 			],
 			'route' => [
@@ -128,14 +128,14 @@ class Configuration implements ConfigurationInterface {
 						->addDefaultsIfNotSet()
 						->children()
 							->scalarNode('group')->cannotBeEmpty()->defaultValue($defaults['class']['group'])->end()
-							->scalarNode('title')->cannotBeEmpty()->defaultValue($defaults['class']['title'])->end()
+							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['class']['civility'])->end()
 							->scalarNode('user')->cannotBeEmpty()->defaultValue($defaults['class']['user'])->end()
 						->end()
 					->end()
 					->arrayNode('default')
 						->addDefaultsIfNotSet()
 						->children()
-							->scalarNode('title')->cannotBeEmpty()->defaultValue($defaults['default']['title'])->end()
+							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['default']['civility'])->end()
 							->arrayNode('group')
 								->treatNullLike(array())
 								->defaultValue($defaults['default']['group'])
