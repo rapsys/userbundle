@@ -401,6 +401,17 @@ class User implements UserInterface, \Serializable {
 	}
 
 	/**
+	 * {@inheritdoc}
+	 */
+	public function preUpdate(\Doctrine\ORM\Event\PreUpdateEventArgs $eventArgs) {
+		//Check that we have an user instance
+		if (($user = $eventArgs->getEntity()) instanceof User) {
+			//Set updated value
+			$user->setUpdated(new \DateTime('now'));
+		}
+	}
+
+	/**
 	 * Returns a string representation of the user
 	 *
 	 * @return string
