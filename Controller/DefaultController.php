@@ -303,7 +303,7 @@ class DefaultController extends AbstractController {
 					//Create message
 					$message = (new TemplatedEmail())
 						//Set sender
-						->from(new Address($this->config['contact']['mail'], $this->config['contact']['name']))
+						->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
 						//Set recipient
 						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 						->to(new Address($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
@@ -442,7 +442,7 @@ class DefaultController extends AbstractController {
 					//Create message
 					$message = (new TemplatedEmail())
 						//Set sender
-						->from(new Address($this->config['contact']['mail'], $this->config['contact']['name']))
+						->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
 						//Set recipient
 						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 						->to(new Address($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
@@ -549,7 +549,7 @@ class DefaultController extends AbstractController {
 				//Create message
 				$message = (new TemplatedEmail())
 					//Set sender
-					->from(new Address($this->config['contact']['mail'], $this->config['contact']['name']))
+					->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
 					//Set recipient
 					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 					->to(new Address($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
