@@ -106,7 +106,7 @@ class Slugger {
 	function slug(string $string): string {
 		//Use Transliterator if available
 		if (class_exists('Transliterator')) {
-			$trans = Transliterator::create('Any-Latin; Latin-ASCII; Lower()');
+			$trans = \Transliterator::create('Any-Latin; Latin-ASCII; Lower()');
 			return preg_replace(['/[^a-zA-Z0-9]+/', '/(^-+|-+$)/'], ['-', ''], $trans->transliterate($string));
 		}
 		return preg_replace('/[\/_|+ -]+/', '-', strtolower(trim(preg_replace('/[^a-zA-Z0-9\/_|+ -]/', '', str_replace(['\'', '"'], ' ', iconv('UTF-8', 'ASCII//TRANSLIT', $string))), '-')));
