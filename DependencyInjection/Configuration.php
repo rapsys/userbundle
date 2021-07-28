@@ -54,7 +54,7 @@ class Configuration implements ConfigurationInterface {
 			'translate' => [],
 			'locales' => '%kernel.translator.fallbacks%',
 			'languages' => [
-				'en' => 'English'
+				'en-gb' => 'English'
 			],
 			'contact' => [
 				'name' => 'John Doe',
