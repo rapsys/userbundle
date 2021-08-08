@@ -1,29 +1,50 @@
+rapsys_user_confirm:
+    path: /confirm/{mail}/{hash}
+    controller: Rapsys\UserBundle\Controller\DefaultController::registerMail
+    requirements:
+        mail: '[a-zA-Z0-9=_-]+'
+        hash: '[a-zA-Z0-9=_-]+'
+    methods: GET|POST
+
 rapsys_user_login:
     path: /login
     controller: Rapsys\UserBundle\Controller\DefaultController::login
     methods: GET|POST
 
-rapsys_user_recover:
-    path: /recover
-    controller: Rapsys\UserBundle\Controller\DefaultController::recover
-    methods: GET|POST
+rapsys_user_logout:
+    path: /logout
+    methods: GET
 
-rapsys_user_recover_mail:
-    path: /recover/{recipient}/{hash}
-    controller: Rapsys\UserBundle\Controller\DefaultController::recoverMail
+rapsys_user_recover:
+    path: /recover/{mail}/pass/{hash}
+    controller: Rapsys\UserBundle\Controller\DefaultController::recover
+    defaults:
+        mail: ~
+        pass: ~
+        hash: ~
     requirements:
-        recipient: '[a-zA-Z0-9=_-]+'
+        mail: '[a-zA-Z0-9=_-]+'
+        pass: '[a-zA-Z0-9=_-]+'
         hash: '[a-zA-Z0-9=_-]+'
     methods: GET|POST
 
 rapsys_user_register:
-    path: /register
+    path: /register/{fields}/{hash}
     controller: Rapsys\UserBundle\Controller\DefaultController::register
+    defaults:
+        fields: ~
+        hash: ~
+    requirements:
+        fields: '[a-zA-Z0-9=_-]+'
+        hash: '[a-zA-Z0-9=_-]+'
     methods: GET|POST
 
-rapsys_user_logout:
-    path: /logout
-    methods: GET
+rapsys_user_edit:
+    path: /user/{mail}
+    controller: Rapsys\UserBundle\Controller\DefaultController::edit
+    requirements:
+        mail: '[a-zA-Z0-9=_-]+'
+    methods: GET|POST
 
 rapsys_user_index:
     path: /
