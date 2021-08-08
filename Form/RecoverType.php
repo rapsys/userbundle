@@ -41,7 +41,7 @@ class RecoverType extends AbstractType {
 	 */
 	public function configureOptions(OptionsResolver $resolver) {
 		//Set defaults
-		$resolver->setDefaults(['error_bubbling' => true, 'mail' => true, 'password' => false]);
+		$resolver->setDefaults(['error_bubbling' => true, 'mail' => true, 'password' => true]);
 
 		//Add extra mail option
 		$resolver->setAllowedTypes('mail', 'boolean');
