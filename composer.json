@@ -5,7 +5,7 @@
     "type": "symfony-bundle",
     "authors": [{
         "name": "Raphaël Gertz",
-        "email": "userbundle@rapsys.eu"
+        "email": "symfony@rapsys.eu"
     }],
     "autoload": {
         "psr-4": {
@@ -13,17 +13,16 @@
         }
     },
     "require": {
-        "php": "*",
-        "doctrine/common": "*",
-        "symfony/config": "*",
-        "symfony/dependency-injection": "*",
-        "symfony/form": "*",
-        "symfony/framework-bundle": "*",
-        "symfony/routing": "*",
-        "symfony/security": "*"
+        "doctrine/doctrine-bundle": "^1.12",
+        "rapsys/packbundle": "dev-master",
+        "symfony/flex": "^1.5",
+        "symfony/form": "^4.4",
+        "symfony/framework-bundle": "^4.4",
+        "symfony/security-bundle": "^4.4",
+        "symfony/validator": "^4.4"
     },
     "require-dev": {
-        "doctrine/data-fixtures": "*"
+        "doctrine/data-fixtures": "^1.5"
     },
     "extra": {
         "branch-alias": {
