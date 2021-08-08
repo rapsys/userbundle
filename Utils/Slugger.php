@@ -65,13 +65,73 @@ class Slugger {
 		$this->offset = array_reduce($split, function ($res, $a) use ($rev) { return $res += $rev[$a]; }, count($split)) % $this->count;
 	}
 
-	//Short the string
-	public function short(string $string): string {
+	/**
+	 * Flatten recursively an array
+	 *
+	 * @param array $data The data tree
+	 * @param string|null $current The current prefix
+	 * @param string $sep The key separator
+	 * @param string $prefix The key prefix
+	 * @param string $suffix The key suffix
+	 * @return array The flattened data
+	 */
+	public function flatten($data, $current = null, $sep = '.', $prefix = '', $suffix = '') {
+		//Init result
+		$ret = [];
+
+		//Look for data array
+		if (is_array($data)) {
+			//Iteare on each pair
+			foreach($data as $k => $v) {
+				//Merge flattened value in return array
+				$ret += $this->flatten($v, empty($current) ? $k : $current.$sep.$k, $sep, $prefix, $suffix);
+			}
+		//Look flat data
+		} else {
+			//Store data in flattened key
+			$ret[$prefix.$current.$suffix] = $data;
+		}
+
+		//Return result
+		return $ret;
+	}
+
+	/**
+	 * Crypt and base64uri encode string
+	 *
+	 * @param string $data The data string
+	 * @return string The hashed data
+	 */
+	public function hash(string $data): string {
+		//Return hashed data
+		//XXX: we use hash_hmac with md5 hash
+		//XXX: crypt was dropped because it provided identical signature for string starting with same pattern
+		return str_replace(['+','/'], ['-','_'], base64_encode(hash_hmac('md5', $data, $this->secret, true)));
+	}
+
+	/**
+	 * Serialize then short
+	 *
+	 * @param array $data The data array
+	 * @return string The serialized and shorted data
+	 */
+	public function serialize(array $data): string {
+		//Return shorted serialized data
+		return $this->short(serialize($data));
+	}
+
+	/**
+	 * Short
+	 *
+	 * @param string $data The data string
+	 * @return string The shorted data
+	 */
+	public function short(string $data): string {
 		//Return string
 		$ret = '';
 
 		//Iterate on each character
-		foreach(str_split($string) as $k => $c) {
+		foreach(str_split($data) as $k => $c) {
 			if (isset($this->rev[$c]) && isset($this->alpha[($this->rev[$c]+$this->offset)%$this->count])) {
 				//XXX: Remap char to an other one
 				$ret .= chr(($this->rev[$c] - $this->offset + $this->count) % $this->count);
@@ -82,33 +142,49 @@ class Slugger {
 		return str_replace(['+','/'], ['-','_'], base64_encode($ret));
 	}
 
-	//Unshort the string
-	public function unshort(string $string): string {
+	/**
+	 * Convert string to safe slug
+	 *
+	 * @param string $data The data string
+	 * @return string The slugged data
+	 */
+	function slug(string $data): string {
+		//Use Transliterator if available
+		if (class_exists('Transliterator')) {
+			$trans = \Transliterator::create('Any-Latin; Latin-ASCII; Lower()');
+			return preg_replace(['/[^a-zA-Z0-9]+/', '/(^-+|-+$)/'], ['-', ''], $trans->transliterate($data));
+		}
+		return preg_replace('/[\/_|+ -]+/', '-', strtolower(trim(preg_replace('/[^a-zA-Z0-9\/_|+ -]/', '', str_replace(['\'', '"'], ' ', iconv('UTF-8', 'ASCII//TRANSLIT', $data))), '-')));
+	}
+
+	/**
+	 * Unshort then unserialize
+	 *
+	 * @param string $data The data string
+	 * @return array The unshorted and unserialized data
+	 */
+	public function unserialize(string $data): array {
+		//Return unshorted unserialized string
+		return unserialize($this->unshort($data));
+	}
+
+	/**
+	 * Unshort
+	 *
+	 * @param string $data The data string
+	 * @return string The unshorted data
+	 */
+	public function unshort(string $data): string {
 		//Return string
 		$ret = '';
 
 		//Iterate on each character
-		foreach(str_split(base64_decode(str_replace(['-','_'], ['+','/'], $string))) as $c) {
+		foreach(str_split(base64_decode(str_replace(['-','_'], ['+','/'], $data))) as $c) {
 			//XXX: Reverse map char to an other one
 			$ret .= $this->alpha[(ord($c) + $this->offset) % $this->count];
 		}
 
 		//Send result
 		return $ret;
-	}
-
-	//Crypt and base64uri encode string
-	public function hash(string $string): string {
-		return str_replace(['+','/'], ['-','_'], base64_encode(crypt($string, $this->secret)));
-	}
-
-	//Convert string to safe slug
-	function slug(string $string): string {
-		//Use Transliterator if available
-		if (class_exists('Transliterator')) {
-			$trans = \Transliterator::create('Any-Latin; Latin-ASCII; Lower()');
-			return preg_replace(['/[^a-zA-Z0-9]+/', '/(^-+|-+$)/'], ['-', ''], $trans->transliterate($string));
-		}
-		return preg_replace('/[\/_|+ -]+/', '-', strtolower(trim(preg_replace('/[^a-zA-Z0-9\/_|+ -]/', '', str_replace(['\'', '"'], ' ', iconv('UTF-8', 'ASCII//TRANSLIT', $string))), '-')));
 	}
 }
