@@ -13,6 +13,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\NotBlank;
+
 use Rapsys\UserBundle\Entity\Civility;
 
 class RegisterType extends AbstractType {
@@ -27,11 +28,25 @@ class RegisterType extends AbstractType {
 			$form->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])]]);
 		}
 
-		$form
-			->add('civility', EntityType::class, ['class' => $options['class_civility'], 'attr' => ['placeholder' => 'Your civility'], 'constraints' => [new NotBlank(['message' => 'Please provide your civility'])], 'choice_translation_domain' => true, 'data' => $options['civility']])
-			->add('pseudonym', TextType::class, ['attr' => ['placeholder' => 'Your pseudonym'], 'constraints' => [new NotBlank(['message' => 'Please provide your pseudonym'])]])
-			->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename'], 'constraints' => [new NotBlank(['message' => 'Please provide your forename'])]])
-			->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname'], 'constraints' => [new NotBlank(['message' => 'Please provide your surname'])]]);
+		//Add extra civility field
+		if (!empty($options['civility'])) {
+			$form->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'constraints' => [new NotBlank(['message' => 'Please provide your civility'])], 'choice_translation_domain' => true, 'data' => $options['civility_default']]);
+		}
+
+		//Add extra pseudonym field
+		if (!empty($options['pseudonym'])) {
+			$form->add('pseudonym', TextType::class, ['attr' => ['placeholder' => 'Your pseudonym'], 'constraints' => [new NotBlank(['message' => 'Please provide your pseudonym'])]]);
+		}
+
+		//Add extra forename field
+		if (!empty($options['forename'])) {
+			$form->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename'], 'constraints' => [new NotBlank(['message' => 'Please provide your forename'])]]);
+		}
+
+		//Add extra surname field
+		if (!empty($options['surname'])) {
+			$form->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname'], 'constraints' => [new NotBlank(['message' => 'Please provide your surname'])]]);
+		}
 
 		//Add extra password field
 		if (!empty($options['password'])) {
@@ -49,11 +64,36 @@ class RegisterType extends AbstractType {
 	 * {@inheritdoc}
 	 */
 	public function configureOptions(OptionsResolver $resolver) {
-		$resolver->setDefaults(['error_bubbling' => true, 'class_civility' => 'RapsysUserBundle:Civility', 'civility' => null, 'password' => true, 'mail' => true]);
-		$resolver->setAllowedTypes('class_civility', 'string');
-		$resolver->setAllowedTypes('civility', [Civility::class, 'null']);
-		$resolver->setAllowedTypes('password', 'boolean');
+		//Set defaults
+		$resolver->setDefaults(['error_bubbling' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'civility' => true, 'pseudonym' => true, 'forename' => true, 'surname' => true, 'password' => true]);
+
+		//Add civility class
+		$resolver->setAllowedTypes('civility_class', 'string');
+
+		//Add civility default
+		//XXX: trigger strange error about table not existing is not specified in form create
+		$resolver->setAllowedTypes('civility_default', [Civility::class, 'null']);
+
+		//Add extra mail option
 		$resolver->setAllowedTypes('mail', 'boolean');
+
+		//Add extra civility option
+		$resolver->setAllowedTypes('civility', 'boolean');
+
+		//Add extra pseudonym option
+		$resolver->setAllowedTypes('pseudonym', 'boolean');
+
+		//Add extra forename option
+		$resolver->setAllowedTypes('forename', 'boolean');
+
+		//Add extra surname option
+		$resolver->setAllowedTypes('surname', 'boolean');
+
+		//Add extra password option
+		$resolver->setAllowedTypes('password', 'boolean');
+
+		//Return resolver
+		return $resolver;
 	}
 
 	/**
