@@ -2,11 +2,12 @@
 
 namespace Rapsys\UserBundle\Controller;
 
-use Rapsys\UserBundle\Utils\Slugger;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -16,6 +17,9 @@ use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Translation\TranslatorInterface;
+use Psr\Log\LoggerInterface;
+
+use Rapsys\PackBundle\Util\SluggerUtil;
 
 class DefaultController extends AbstractController {
 	//Config array
@@ -26,6 +30,8 @@ class DefaultController extends AbstractController {
 
 	/**
 	 * Constructor
+	 *
+	 * @TODO: move all canonical and other view related stuff in an user AbstractController like in RapsysAir render feature !!!!
 	 *
 	 * @param ContainerInterface $container The containter instance
 	 * @param RouterInterface $router The router instance
@@ -38,9 +44,17 @@ class DefaultController extends AbstractController {
 		//Set the translator
 		$this->translator = $translator;
 
-		//Get current action
-		//XXX: we don't use this as it would be too slow, maybe ???
-		#$action = str_replace(self::getAlias().'_', '', $container->get('request_stack')->getCurrentRequest()->get('_route'));
+		//Get request stack
+		$stack = $container->get('request_stack');
+
+		//Get current request
+		$request = $stack->getCurrentRequest();
+
+		//Get current locale
+		$currentLocale = $request->getLocale();
+
+		//Set locale
+		$this->config['context']['locale'] = str_replace('_', '-', $currentLocale);
 
 		//Set translate array
 		$translates = [];
@@ -62,16 +76,26 @@ class DefaultController extends AbstractController {
 
 		//Inject every requested route in view and mail context
 		foreach($this->config as $tag => $current) {
+			//Look for entry with title subkey
+			if (!empty($current['title'])) {
+				//Translate title value
+				$this->config[$tag]['title'] = $translator->trans($current['title']);
+			}
+
 			//Look for entry with route subkey
 			if (!empty($current['route'])) {
 				//Generate url for both view and mail
 				foreach(['view', 'mail'] as $view) {
 					//Check that context key is usable
 					if (isset($current[$view]['context']) && is_array($current[$view]['context'])) {
+						//Merge with global context
+						$this->config[$tag][$view]['context'] = array_replace_recursive($this->config['context'], $this->config[$tag][$view]['context']);
+
 						//Process every routes
 						foreach($current['route'] as $route => $key) {
-							//Skip recover_mail route as it requires some parameters
-							if ($route == 'recover_mail') {
+							//With confirm route
+							if ($route == 'confirm') {
+								//Skip route as it requires some parameters
 								continue;
 							}
 
@@ -103,17 +127,23 @@ class DefaultController extends AbstractController {
 						}
 
 						//Look for successful intersections
-						if (!empty(array_intersect_key($translates, $current[$view]['context']))) {
+						if (!empty(array_intersect_key($translates, $this->config[$tag][$view]['context']))) {
 							//Iterate on keys to translate
 							foreach($this->config['translate'] as $translate) {
 								//Set keys
 								$keys = explode('.', $translate);
 
 								//Set tmp
-								$tmp = $current[$view]['context'];
+								$tmp = $this->config[$tag][$view]['context'];
 
 								//Iterate on keys
 								foreach($keys as $curkey) {
+									//Without child key
+									if (!isset($tmp[$curkey])) {
+										//Skip to next key
+										continue(2);
+									}
+
 									//Get child key
 									$tmp = $tmp[$curkey];
 								}
@@ -132,50 +162,295 @@ class DefaultController extends AbstractController {
 							}
 						}
 
-						//Get current locale
-						$currentLocale = $router->getContext()->getParameters()['_locale'];
-
-						//Iterate on locales excluding current one
-						foreach($this->config['locales'] as $locale) {
-							//Set titles
-							$titles = [];
-
-							//Iterate on other locales
-							foreach(array_diff($this->config['locales'], [$locale]) as $other) {
-								$titles[$other] = $translator->trans($this->config['languages'][$locale], [], null, $other);
-							}
-
+						//With view context
+						if ($view == 'view') {
 							//Get context path
-							$path = $router->getContext()->getPathInfo();
+							$pathInfo = $router->getContext()->getPathInfo();
 
-							//Retrieve route matching path
-							$route = $router->match($path);
+							//Iterate on locales excluding current one
+							foreach($this->config['locales'] as $locale) {
+								//Set titles
+								$titles = [];
 
-							//Get route name
-							$name = $route['_route'];
+								//Iterate on other locales
+								foreach(array_diff($this->config['locales'], [$locale]) as $other) {
+									$titles[$other] = $translator->trans($this->config['languages'][$locale], [], null, $other);
+								}
 
-							//Unset route name
-							unset($route['_route']);
+								//Retrieve route matching path
+								$route = $router->match($pathInfo);
 
-							//With current locale
-							if ($locale == $currentLocale) {
-								//Set locale locales context
-								$this->config[$tag][$view]['context']['canonical'] = $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
-							} else {
-								//Set locale locales context
-								$this->config[$tag][$view]['context']['alternates'][] = [
-									'lang' => $locale,
-									'absolute' => $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
-									'relative' => $router->generate($name, ['_locale' => $locale]+$route),
-									'title' => implode('/', $titles),
-									'translated' => $translator->trans($this->config['languages'][$locale], [], null, $locale)
-								];
+								//Get route name
+								$name = $route['_route'];
+
+								//Unset route name
+								unset($route['_route']);
+
+								//With current locale
+								if ($locale == $currentLocale) {
+									//Set locale locales context
+									$this->config[$tag][$view]['context']['canonical'] = $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
+								} else {
+									//Set locale locales context
+									$this->config[$tag][$view]['context']['alternates'][$locale] = [
+										'absolute' => $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
+										'relative' => $router->generate($name, ['_locale' => $locale]+$route),
+										'title' => implode('/', $titles),
+										'translated' => $translator->trans($this->config['languages'][$locale], [], null, $locale)
+									];
+								}
+
+								//Add shorter locale
+								if (empty($this->config[$tag][$view]['context']['alternates'][$slocale = substr($locale, 0, 2)])) {
+									//Add shorter locale
+									$this->config[$tag][$view]['context']['alternates'][$slocale] = [
+										'absolute' => $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
+										'relative' => $router->generate($name, ['_locale' => $locale]+$route),
+										'title' => implode('/', $titles),
+										'translated' => $translator->trans($this->config['languages'][$locale], [], null, $locale)
+									];
+								}
 							}
 						}
 					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * Confirm account from mail link
+	 *
+	 * @param Request $request The request
+	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param SluggerUtil $slugger The slugger
+	 * @param MailerInterface $mailer The mailer
+	 * @param string $mail The shorted mail address
+	 * @param string $extra The serialized then shorted extra array
+	 * @param string $hash The hashed password
+	 * @return Response The response
+	 */
+	public function confirm(Request $request, UserPasswordEncoderInterface $encoder, SluggerUtil $slugger, MailerInterface $mailer, $mail, $extra, $hash) {
+		//Get doctrine
+		$doctrine = $this->getDoctrine();
+
+		//With invalid hash
+		if ($hash != $slugger->hash($mail.$extra)) {
+			//Throw bad request
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+		}
+
+		//Get mail
+		$mail = $slugger->unshort($smail = $mail);
+
+		//Without valid mail
+		if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
+			//Throw bad request
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $mail]));
+		}
+
+		//With existing subscriber
+		if ($doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail)) {
+			//Add error message mail already exists
+			$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
+
+			//Redirect to user view
+			return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']);
+		}
+
+		//Get extra
+		$extra = $slugger->unserialize($sextra = $extra);
+
+		//Without valid extra
+		if (!is_array($extra)) {
+			//Throw bad request
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'extra', '%value%' => $sextra]));
+		}
+
+		//Extract names and pseudonym from mail
+		$names = explode(' ', $pseudonym = ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
+
+		//Get manager
+		$manager = $doctrine->getManager();
+
+		//Init reflection
+		$reflection = new \ReflectionClass($this->config['class']['user']);
+
+		//Create new user
+		$user = $reflection->newInstance();
+
+		//Set mail
+		$user->setMail($mail);
+
+		//Set default value
+		$default = [
+			'civility(title)' => $this->config['default']['civility'],
+			'pseudonym' => $pseudonym,
+			'forename' => $names[0]??$pseudonym,
+			'surname' => $names[1]??$pseudonym,
+			'password' => $encoder->encodePassword($user, $mail),
+			'active' => true
+		];
+
+		//Iterate on each default value
+		//TODO: store add/set action between [] ???
+		foreach($extra+$default as $key => $value) {
+			//Set member
+			$member = $key;
+
+			//With title entity
+			if (substr($key, -strlen('(title)')) === '(title)') {
+				//Remove field info
+				$member = substr($member, 0, -strlen('(title)'));
+
+				//Get object as value
+				$value = $doctrine->getRepository($this->config['class'][$member])->findOneByTitle($value);
+			//With id entity
+			} elseif (substr($key, -strlen('(id)')) === '(id)') {
+				//Remove field info
+				$member = substr($member, 0, -strlen('(id)'));
+
+				//Get object as value
+				$value = $doctrine->getRepository($this->config['class'][$key])->findOneById($value);
+			}
+
+			//Set value
+			$user->{'set'.ucfirst($member)}($value);
+
+			//Unset extra value
+			unset($extra[$key]);
+		}
+
+		//Iterate on default group
+		foreach($this->config['default']['group'] as $i => $groupTitle) {
+			//Fetch group
+			if (($group = $doctrine->getRepository($this->config['class']['group'])->findOneByTitle($groupTitle))) {
+				//Set default group
+				//XXX: see vendor/symfony/security-core/Role/Role.php
+				$user->addGroup($group);
+			//Group not found
+			} else {
+				//Throw exception
+				//XXX: consider missing group as fatal
+				throw new \Exception(sprintf('Group from rapsys_user.default.group[%d] not found by title: %s', $i, $groupTitle));
+			}
+		}
+
+		$user->setCreated(new \DateTime('now'));
+		$user->setUpdated(new \DateTime('now'));
+
+		//Persist user
+		$manager->persist($user);
+
+		//Try saving in database
+		try {
+			//Send to database
+			$manager->flush();
+
+			//Add error message mail already exists
+			$this->addFlash('notice', $this->translator->trans('Your account has been created'));
+		//Catch double subscription
+		} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+			//Add error message mail already exists
+			$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
+		}
+
+		//Redirect to user view
+		return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']);
+	}
+
+	/**
+	 * Edit account by shorted mail
+	 *
+	 * @param Request $request The request
+	 * @param SluggerUtil $slugger The slugger
+	 * @param string $mail The shorted mail address
+	 * @return Response The response
+	 */
+	public function edit(Request $request, SluggerUtil $slugger, $mail) {
+		//Get doctrine
+		$doctrine = $this->getDoctrine();
+
+		//Get mail
+		$mail = $slugger->unshort($smail = $mail);
+
+		//With existing subscriber
+		if (empty($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
+			var_dump($mail);
+			//Throw not found
+			//XXX: prevent slugger reverse engineering by not displaying decoded mail
+			throw $this->createNotFoundException($this->translator->trans('Unable to find account %mail%', ['%mail%' => $smail]));
+		}
+
+		//Get user token
+		$token = new UsernamePasswordToken($user, null, 'none', $user->getRoles());
+
+		//Check if guest
+		$isGuest = $this->get('rapsys_user.access_decision_manager')->decide($token, ['ROLE_GUEST']);
+
+		//Prevent access when not admin, user is not guest and not currently logged user
+		if (!$this->isGranted('ROLE_ADMIN') && empty($isGuest) && $user != $this->getUser()) {
+			//Throw access denied
+			//XXX: prevent slugger reverse engineering by not displaying decoded mail
+			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user: %mail%', ['%mail%' => $smail]));
+		}
+
+		//Create the RegisterType form and give the proper parameters
+		$form = $this->createForm($this->config['register']['view']['form'], $user, [
+			//Set action to register route name and context
+			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']),
+			//Set civility class
+			'civility_class' => $this->config['class']['civility'],
+			//Set civility default
+			'civility_default' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
+			//Disable mail
+			'mail' => $this->isGranted('ROLE_ADMIN'),
+			//Disable password
+			//XXX: prefer a reset on login to force user unspam action
+			'password' => false,
+			//Set method
+			'method' => 'POST'
+		]);
+
+		if ($request->isMethod('POST')) {
+			//Refill the fields in case the form is not valid.
+			$form->handleRequest($request);
+
+			if ($form->isValid()) {
+				//Set data
+				$data = $form->getData();
+
+				//Get manager
+				$manager = $doctrine->getManager();
+
+				//Queue snippet save
+				$manager->persist($data);
+
+				//Flush to get the ids
+				$manager->flush();
+
+				//Add notice
+				$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail]));
+
+				//Redirect to user view
+				//TODO: extract referer ??? or useless ???
+				return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']);
+
+				//Redirect to cleanup the form
+				return $this->redirectToRoute('rapsys_air', ['user' => $data->getId()]);
+			}
+		} else {
+			//Add notice
+			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail %mail% and any password then follow the procedure', ['%mail%' => $mail]));
+		}
+
+		//Render view
+		return $this->render(
+			//Template
+			$this->config['edit']['view']['name'],
+			//Context
+			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['edit']['view']['context']
+		);
 	}
 
 	/**
@@ -213,6 +488,9 @@ class DefaultController extends AbstractController {
 			$recover = $this->createForm($this->config['recover']['view']['form'], null, [
 				//Set action to recover route name and context
 				'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
+				//Without password
+				'password' => false,
+				//Set method
 				'method' => 'POST'
 			]);
 
@@ -225,6 +503,9 @@ class DefaultController extends AbstractController {
 
 			//Add recover form to context
 			$context['recover'] = $recover->createView();
+		} else {
+			//Add notice
+			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
 		}
 
 		//Render view
@@ -240,104 +521,204 @@ class DefaultController extends AbstractController {
 	 * Recover account
 	 *
 	 * @param Request $request The request
-	 * @param Slugger $slugger The slugger
+	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param SluggerUtil $slugger The slugger
 	 * @param MailerInterface $mailer The mailer
+	 * @param string $mail The shorted mail address
+	 * @param string $pass The shorted password
+	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function recover(Request $request, Slugger $slugger, MailerInterface $mailer) {
+	public function recover(Request $request, UserPasswordEncoderInterface $encoder, SluggerUtil $slugger, MailerInterface $mailer, $mail, $pass, $hash) {
+		//Get doctrine
+		$doctrine = $this->getDoctrine();
+
+		//Without mail, pass and hash
+		if (empty($mail) && empty($pass) && empty($hash)) {
+			//Create the RecoverType form and give the proper parameters
+			$form = $this->createForm($this->config['recover']['view']['form'], null, [
+				//Set action to recover route name and context
+				'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
+				//Without password
+				'password' => false,
+				//Set method
+				'method' => 'POST'
+			]);
+
+			if ($request->isMethod('POST')) {
+				//Refill the fields in case the form is not valid.
+				$form->handleRequest($request);
+
+				if ($form->isValid()) {
+					//Set data
+					$data = $form->getData();
+
+					//Find user by data mail
+					if ($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($data['mail'])) {
+						//Set mail shortcut
+						$recoverMail =& $this->config['recover']['mail'];
+
+						//Set mail
+						$mail = $slugger->short($user->getMail());
+
+						//Set pass
+						$pass = $slugger->hash($user->getPassword());
+
+						//Generate each route route
+						foreach($this->config['recover']['route'] as $route => $tag) {
+							//Only process defined routes
+							if (!empty($this->config['route'][$route])) {
+								//Process for recover mail url
+								if ($route == 'recover') {
+									//Set the url in context
+									$recoverMail['context'][$tag] = $this->get('router')->generate(
+										$this->config['route'][$route]['name'],
+										//Prepend recover context with tag
+										[
+											'mail' => $mail,
+											'pass' => $pass,
+											'hash' => $slugger->hash($mail.$pass)
+										]+$this->config['route'][$route]['context'],
+										UrlGeneratorInterface::ABSOLUTE_URL
+									);
+								}
+							}
+						}
+
+						//Set recipient_name
+						$recoverMail['context']['recipient_mail'] = $user->getMail();
+
+						//Set recipient_name
+						$recoverMail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
+
+						//Init subject context
+						$subjectContext = $slugger->flatten(array_replace_recursive($this->config['recover']['view']['context'], $recoverMail['context']), null, '.', '%', '%');
+
+						//Translate subject
+						$recoverMail['subject'] = ucfirst($this->translator->trans($recoverMail['subject'], $subjectContext));
+
+						//Create message
+						$message = (new TemplatedEmail())
+							//Set sender
+							->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
+							//Set recipient
+							//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+							->to(new Address($recoverMail['context']['recipient_mail'], $recoverMail['context']['recipient_name']))
+							//Set subject
+							->subject($recoverMail['subject'])
+
+							//Set path to twig templates
+							->htmlTemplate($recoverMail['html'])
+							->textTemplate($recoverMail['text'])
+
+							//Set context
+							//XXX: require recursive merge to avoid loosing subkeys
+							//['subject' => $recoverMail['subject']]+$recoverMail['context']+$this->config['recover']['view']['context']
+							->context(array_replace_recursive($this->config['recover']['view']['context'], $recoverMail['context'], ['subject' => $recoverMail['subject']]));
+
+						//Try sending message
+						//XXX: mail delivery may silently fail
+						try {
+							//Send message
+							$mailer->send($message);
+
+							//Redirect on the same route with sent=1 to cleanup form
+							return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
+						//Catch obvious transport exception
+						} catch(TransportExceptionInterface $e) {
+							//Add error message mail unreachable
+							$form->get('mail')->addError(new FormError($this->translator->trans('Account found but unable to contact: %mail%', array('%mail%' => $data['mail']))));
+						}
+					//Accout not found
+					} else {
+						//Add error message to mail field
+						$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account %mail%', ['%mail%' => $data['mail']])));
+					}
+				}
+			}
+
+			//Render view
+			return $this->render(
+				//Template
+				$this->config['recover']['view']['name'],
+				//Context
+				['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['recover']['view']['context']
+			);
+		}
+
+		//With invalid hash
+		if ($hash != $slugger->hash($mail.$pass)) {
+			//Throw bad request
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+		}
+
+		//Get mail
+		$mail = $slugger->unshort($smail = $mail);
+
+		//Without valid mail
+		if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
+			//Throw bad request
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $mail]));
+		}
+
+		//With existing subscriber
+		if (empty($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
+			//Throw not found
+			//XXX: prevent slugger reverse engineering by not displaying decoded mail
+			throw $this->createNotFoundException($this->translator->trans('Unable to find account %mail%', ['%mail%' => $smail]));
+		}
+
+		//With unmatched pass
+		if ($pass != $slugger->hash($user->getPassword())) {
+			//Throw not found
+			//XXX: prevent use of outdated recover link
+			throw $this->createNotFoundException($this->translator->trans('Outdated recover link'));
+		}
+
 		//Create the RecoverType form and give the proper parameters
-		$form = $this->createForm($this->config['recover']['view']['form'], null, array(
+		$form = $this->createForm($this->config['recover']['view']['form'], $user, [
 			//Set action to recover route name and context
-			'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
+			'action' => $this->generateUrl($this->config['route']['recover']['name'], ['mail' => $smail, 'pass' => $pass, 'hash' => $hash]+$this->config['route']['recover']['context']),
+			//Without mail
+			'mail' => false,
+			//Set method
 			'method' => 'POST'
-		));
+		]);
 
 		if ($request->isMethod('POST')) {
 			//Refill the fields in case the form is not valid.
 			$form->handleRequest($request);
 
 			if ($form->isValid()) {
-				//Get doctrine
-				$doctrine = $this->getDoctrine();
-
 				//Set data
 				$data = $form->getData();
 
-				//Try to find user
-				if ($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($data['mail'])) {
-					//Set mail shortcut
-					$mail =& $this->config['recover']['mail'];
+				//Set encoded password
+				$encoded = $encoder->encodePassword($user, $user->getPassword());
 
-					//Generate each route route
-					foreach($this->config['recover']['route'] as $route => $tag) {
-						//Only process defined routes
-						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
-							//Process for recover mail url
-							if ($route == 'recover_mail') {
-								//Set the url in context
-								$mail['context'][$tag] = $this->get('router')->generate(
-									$this->config['route'][$route]['name'],
-									//Prepend recover context with tag
-									[
-										'recipient' => $slugger->short($user->getMail()),
-										'hash' => $slugger->hash($user->getPassword())
-									]+$this->config['route'][$route]['context'],
-									UrlGeneratorInterface::ABSOLUTE_URL
-								);
-							}
-						}
-					}
+				//Update pass
+				$pass = $slugger->hash($encoded);
 
-					//Set recipient_name
-					$mail['context']['recipient_mail'] = $data['mail'];
+				//Set user password
+				$user->setPassword($encoded);
 
-					//Set recipient_name
-					$mail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
+				//Set updated
+				$user->setUpdated(new \DateTime('now'));
 
-					//Init subject context
-					$subjectContext = $this->flatten(array_replace_recursive($this->config['recover']['view']['context'], $mail['context']), null, '.', '%', '%');
+				//Get manager
+				$manager = $doctrine->getManager();
 
-					//Translate subject
-					$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
+				//Persist user
+				$manager->persist($user);
 
-					//Create message
-					$message = (new TemplatedEmail())
-						//Set sender
-						->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
-						//Set recipient
-						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
-						->to(new Address($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
-						//Set subject
-						->subject($mail['subject'])
+				//Send to database
+				$manager->flush();
 
-						//Set path to twig templates
-						->htmlTemplate($mail['html'])
-						->textTemplate($mail['text'])
+				//Add notice
+				$this->addFlash('notice', $this->translator->trans('Account %mail% password updated', ['%mail%' => $mail]));
 
-						//Set context
-						//XXX: require recursive merge to avoid loosing subkeys
-						//['subject' => $mail['subject']]+$mail['context']+$this->config['recover']['view']['context']
-						->context(array_replace_recursive($this->config['recover']['view']['context'], $mail['context'], ['subject' => $mail['subject']]));
-
-					//Try sending message
-					//XXX: mail delivery may silently fail
-					try {
-						//Send message
-						$mailer->send($message);
-
-						//Redirect on the same route with sent=1 to cleanup form
-						#return $this->redirectToRoute('rapsys_user_register', array('sent' => 1));
-						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
-					//Catch obvious transport exception
-					} catch(TransportExceptionInterface $e) {
-						//Add error message mail unreachable
-						$form->get('mail')->addError(new FormError($this->translator->trans('Account found but unable to contact: %mail%', array('%mail%' => $data['mail']))));
-					}
-				//Accout not found
-				} else {
-					//Add error message to mail field
-					$form->get('mail')->addError(new FormError($this->translator->trans('Unable to find account %mail%', ['%mail%' => $data['mail']])));
-				}
+				//Redirect to user login
+				return $this->redirectToRoute($this->config['route']['login']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['login']['context']);
 			}
 		}
 
@@ -351,166 +732,63 @@ class DefaultController extends AbstractController {
 	}
 
 	/**
-	 * Recover account with mail link
-	 *
-	 * @param Request $request The request
-	 * @param UserPasswordEncoderInterface $encoder The password encoder
-	 * @param Slugger $slugger The slugger
-	 * @param MailerInterface $mailer The mailer
-	 * @param string $recipient The shorted recipient mail address
-	 * @param string $hash The hashed password
-	 * @return Response The response
-	 */
-	public function recoverMail(Request $request, UserPasswordEncoderInterface $encoder, Slugger $slugger, MailerInterface $mailer, $recipient, $hash) {
-		//Create the RecoverType form and give the proper parameters
-		$form = $this->createForm($this->config['recover_mail']['view']['form'], null, array(
-			//Set action to recover route name and context
-			'action' => $this->generateUrl($this->config['route']['recover_mail']['name'], ['recipient' => $recipient, 'hash' => $hash]+$this->config['route']['recover_mail']['context']),
-			'method' => 'POST'
-		));
-
-		//Get doctrine
-		$doctrine = $this->getDoctrine();
-
-		//Init found
-		$found = false;
-
-		//Retrieve user
-		if (($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($slugger->unshort($recipient))) && $found = ($hash == $slugger->hash($user->getPassword()))) {
-			if ($request->isMethod('POST')) {
-				//Refill the fields in case the form is not valid.
-				$form->handleRequest($request);
-
-				if ($form->isValid()) {
-					//Set data
-					$data = $form->getData();
-
-					//set encoded password
-					$encoded = $encoder->encodePassword($user, $data['password']);
-
-					//Set user password
-					$user->setPassword($encoded);
-
-					//Get manager
-					$manager = $doctrine->getManager();
-
-					//Persist user
-					$manager->persist($user);
-
-					//Send to database
-					$manager->flush();
-
-					//Set mail shortcut
-					$mail =& $this->config['recover_mail']['mail'];
-
-					//Regen hash
-					$hash = $slugger->hash($encoded);
-
-					//Generate each route route
-					foreach($this->config['recover_mail']['route'] as $route => $tag) {
-						//Only process defined routes
-						if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
-							//Process for recover mail url
-							if ($route == 'recover_mail') {
-								//Prepend recover context with tag
-								$this->config['route'][$route]['context'] = [
-									'recipient' => $recipient,
-									'hash' => $hash
-								]+$this->config['route'][$route]['context'];
-							}
-							//Set the url in context
-							$mail['context'][$tag] = $this->get('router')->generate(
-								$this->config['route'][$route]['name'],
-								$this->config['route'][$route]['context'],
-								UrlGeneratorInterface::ABSOLUTE_URL
-							);
-						}
-					}
-
-					//Set recipient_name
-					$mail['context']['recipient_mail'] = $user->getMail();
-
-					//Set recipient_name
-					$mail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
-
-					//Init subject context
-					$subjectContext = $this->flatten(array_replace_recursive($this->config['recover_mail']['view']['context'], $mail['context']), null, '.', '%', '%');
-
-					//Translate subject
-					$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
-
-					//Create message
-					$message = (new TemplatedEmail())
-						//Set sender
-						->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
-						//Set recipient
-						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
-						->to(new Address($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
-						//Set subject
-						->subject($mail['subject'])
-
-						//Set path to twig templates
-						->htmlTemplate($mail['html'])
-						->textTemplate($mail['text'])
-
-						//Set context
-						//XXX: require recursive merge to avoid loosing subkeys
-						//['subject' => $mail['subject']]+$mail['context']+$this->config['recover_mail']['view']['context']
-						->context(array_replace_recursive($this->config['recover_mail']['view']['context'], $mail['context'], ['subject' => $mail['subject']]));
-
-					//Try sending message
-					//XXX: mail delivery may silently fail
-					try {
-						//Send message
-						$mailer->send($message);
-
-						//Redirect on the same route with sent=1 to cleanup form
-						return $this->redirectToRoute($request->get('_route'), ['recipient' => $recipient, 'hash' => $hash, 'sent' => 1]+$request->get('_route_params'));
-					//Catch obvious transport exception
-					} catch(TransportExceptionInterface $e) {
-						//Add error message mail unreachable
-						$form->get('password')->get('first')->addError(new FormError($this->translator->trans('Account %mail% updated but unable to contact', array('%mail%' => $mail['context']['recipient_mail']))));
-					}
-				}
-			}
-		//Accout not found
-		} else {
-			//Add error in flash message
-			//XXX: prevent slugger reverse engineering by not displaying decoded recipient
-			#$this->addFlash('error', $this->translator->trans('Unable to find account %mail%', ['%mail%' => $slugger->unshort($recipient)]));
-		}
-
-		//Render view
-		return $this->render(
-			//Template
-			$this->config['recover_mail']['view']['name'],
-			//Context
-			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0), 'found' => $found]+$this->config['recover_mail']['view']['context']
-		);
-	}
-
-	/**
 	 * Register an account
 	 *
-	 * @todo: activation link
-	 *
 	 * @param Request $request The request
 	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param SluggerUtil $slugger The slugger
 	 * @param MailerInterface $mailer The mailer
+	 * @param LoggerInterface $logger The logger
+	 * @param string $field The serialized then shorted form field array
+	 * @param string $hash The hashed serialized field array
 	 * @return Response The response
 	 */
-	public function register(Request $request, UserPasswordEncoderInterface $encoder, MailerInterface $mailer) {
+	public function register(Request $request, UserPasswordEncoderInterface $encoder, SluggerUtil $slugger, MailerInterface $mailer, LoggerInterface $logger, $field, $hash) {
 		//Get doctrine
 		$doctrine = $this->getDoctrine();
 
+		//With field
+		if (!empty($field) && !empty($hash)) {
+			//With invalid hash
+			if ($hash != $slugger->hash($field)) {
+				//Throw bad request
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+			}
+
+			//Try
+			try {
+				//Unshort then unserialize field
+				$field = $slugger->unserialize($field);
+			//Catch type error
+			} catch (\Error|\Exception $e) {
+				//Throw bad request
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'field', '%value%' => $field]), $e);
+			}
+
+			//With non array field
+			if (!is_array($field)) {
+				//Throw bad request
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'field', '%value%' => $field]));
+			}
+		//Without field and hash
+		} else {
+			//Reset field
+			$field = [];
+		}
+
 		//Create the RegisterType form and give the proper parameters
-		$form = $this->createForm($this->config['register']['view']['form'], null, array(
-			'class_civility' => $this->config['class']['civility'],
-			'civility' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
+		$form = $this->createForm($this->config['register']['view']['form'], null, $field+[
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
+			//Set civility class
+			'civility_class' => $this->config['class']['civility'],
+			//Set civility default
+			'civility_default' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
+			//With mail
+			'mail' => true,
+			//Set method
 			'method' => 'POST'
-		));
+		]);
 
 		if ($request->isMethod('POST')) {
 			//Refill the fields in case the form is not valid.
@@ -521,52 +799,10 @@ class DefaultController extends AbstractController {
 				$data = $form->getData();
 
 				//Set mail shortcut
-				$mail =& $this->config['register']['mail'];
+				$registerMail =& $this->config['register']['mail'];
 
-				//Generate each route route
-				foreach($this->config['register']['route'] as $route => $tag) {
-					if (empty($mail['context'][$tag]) && !empty($this->config['route'][$route])) {
-						$mail['context'][$tag] = $this->get('router')->generate(
-							$this->config['route'][$route]['name'],
-							$this->config['route'][$route]['context'],
-							UrlGeneratorInterface::ABSOLUTE_URL
-						);
-					}
-				}
-
-				//Set recipient_name
-				$mail['context']['recipient_mail'] = $data['mail'];
-
-				//Set recipient_name
-				$mail['context']['recipient_name'] = trim($data['forename'].' '.$data['surname'].($data['pseudonym']?' ('.$data['pseudonym'].')':''));
-
-				//Init subject context
-				$subjectContext = $this->flatten(array_replace_recursive($this->config['register']['view']['context'], $mail['context']), null, '.', '%', '%');
-
-				//Translate subject
-				$mail['subject'] = ucfirst($this->translator->trans($mail['subject'], $subjectContext));
-
-				//Create message
-				$message = (new TemplatedEmail())
-					//Set sender
-					->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
-					//Set recipient
-					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
-					->to(new Address($mail['context']['recipient_mail'], $mail['context']['recipient_name']))
-					//Set subject
-					->subject($mail['subject'])
-
-					//Set path to twig templates
-					->htmlTemplate($mail['html'])
-					->textTemplate($mail['text'])
-
-					//Set context
-					//XXX: require recursive merge to avoid loosing subkeys
-					//['subject' => $mail['subject']]+$mail['context']+$this->config['register']['view']['context']
-					->context(array_replace_recursive($this->config['register']['view']['context'], $mail['context'], ['subject' => $mail['subject']]));
-
-				//Get manager
-				$manager = $doctrine->getManager();
+				//Set extra
+				$extra = [];
 
 				//Init reflection
 				$reflection = new \ReflectionClass($this->config['class']['user']);
@@ -574,59 +810,117 @@ class DefaultController extends AbstractController {
 				//Create new user
 				$user = $reflection->newInstance();
 
-				$user->setMail($data['mail']);
-				$user->setPseudonym($data['pseudonym']);
-				$user->setForename($data['forename']);
-				$user->setSurname($data['surname']);
-				$user->setPhone($data['phone']);
-				$user->setPassword($encoder->encodePassword($user, $data['password']));
-				$user->setActive(true);
-				$user->setCivility($data['civility']);
-
-				//Iterate on default group
-				foreach($this->config['default']['group'] as $i => $groupTitle) {
-					//Fetch group
-					if (($group = $doctrine->getRepository($this->config['class']['group'])->findOneByTitle($groupTitle))) {
-						//Set default group
-						//XXX: see vendor/symfony/security-core/Role/Role.php
-						$user->addGroup($group);
-					//Group not found
-					} else {
-						//Throw exception
-						//XXX: consider missing group as fatal
-						throw new \Exception(sprintf('Group from rapsys_user.default.group[%d] not found by title: %s', $i, $groupTitle));
+				//Iterate on each entry
+				//TODO: store add/set action between [] ???
+				foreach($data as $key => $value) {
+					//Skip mail
+					if ($key == 'mail') {
+						continue;
+					//Store shorted title
+					} elseif (is_callable([$value, 'getTitle'])) {
+						$extra[$key.'(title)'] = $value->getTitle();
+					//Store shorted id
+					} elseif (is_callable([$value, 'getId'])) {
+						$extra[$key.'(id)'] = $value->getId();
+					//Store encoded password
+					} elseif(!empty($value) && $key == 'password') {
+						$extra['password'] = $encoder->encodePassword($user, $value);
+					//Store shorted value
+					} elseif (!empty($value)) {
+						$extra[$key] = $value;
 					}
 				}
 
-				$user->setCreated(new \DateTime('now'));
-				$user->setUpdated(new \DateTime('now'));
+				//Set mail
+				$mail = $slugger->short($data['mail']);
 
-				//Persist user
-				$manager->persist($user);
+				//Set extra
+				$extra = $slugger->serialize($extra);
 
-				//Try saving in database
-				try {
-					//Send to database
-					$manager->flush();
-
-					//Try sending message
-					//XXX: mail delivery may silently fail
-					try {
-						//Send message
-						$mailer->send($message);
-
-						//Redirect on the same route with sent=1 to cleanup form
-						#return $this->redirectToRoute('rapsys_user_register', array('sent' => 1));
-						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
-					//Catch obvious transport exception
-					} catch(TransportExceptionInterface $e) {
-						//Add error message mail unreachable
-						$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% created but unable to contact', array('%mail%' => $data['mail']))));
+				//Generate each route route
+				foreach($this->config['register']['route'] as $route => $tag) {
+					//Only process defined routes
+					if (!empty($this->config['route'][$route])) {
+						//Process for confirm url
+						if ($route == 'confirm') {
+							//Set the url in context
+							$registerMail['context'][$tag] = $this->get('router')->generate(
+								$this->config['route'][$route]['name'],
+								//Prepend subscribe context with tag
+								[
+									'mail' => $mail,
+									'extra' => $extra,
+									'hash' => $slugger->hash($mail.$extra)
+								]+$this->config['route'][$route]['context'],
+								UrlGeneratorInterface::ABSOLUTE_URL
+							);
+						}
 					}
-				//Catch double subscription
-				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
-					//Add error message mail already exists
-					$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% already exists', ['%mail%' => $data['mail']])));
+				}
+
+				//Log new user infos
+				$logger->emergency(
+					$this->translator->trans(
+						'newuser:mail=%mail%|locale=%locale%|confirm=%confirm%',
+						[
+							'%mail%' => $data['mail'],
+							'%locale%' => $request->getLocale(),
+							'%confirm%' => $registerMail['context'][$this->config['register']['route']['confirm']]
+						]
+					)
+				);
+
+				//Set recipient_name
+				$registerMail['context']['recipient_mail'] = $data['mail'];
+
+				//Set recipient name
+				$registerMail['context']['recipient_name'] = '';
+
+				//With forename, surname and pseudonym
+				if (isset($data['forename']) && isset($data['surname']) && isset($data['pseudonym'])) {
+					//Set recipient name
+					$registerMail['context']['recipient_name'] = implode(' ', [$data['forename'], $data['surname'], $data['pseudonym']?'('.$data['pseudonym'].')':'']);
+				//With pseudonym
+				} elseif (isset($data['pseudonym'])) {
+					//Set recipient name
+					$registerMail['context']['recipient_name'] = $data['pseudonym'];
+				}
+
+				//Init subject context
+				$subjectContext = $slugger->flatten(array_replace_recursive($this->config['register']['view']['context'], $registerMail['context']), null, '.', '%', '%');
+
+				//Translate subject
+				$registerMail['subject'] = ucfirst($this->translator->trans($registerMail['subject'], $subjectContext));
+
+				//Create message
+				$message = (new TemplatedEmail())
+					//Set sender
+					->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
+					//Set recipient
+					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+					->to(new Address($registerMail['context']['recipient_mail'], $registerMail['context']['recipient_name']))
+					//Set subject
+					->subject($registerMail['subject'])
+
+					//Set path to twig templates
+					->htmlTemplate($registerMail['html'])
+					->textTemplate($registerMail['text'])
+
+					//Set context
+					->context(['subject' => $registerMail['subject']]+$registerMail['context']);
+
+				//Try sending message
+				//XXX: mail delivery may silently fail
+				try {
+					//Send message
+					$mailer->send($message);
+
+					//Redirect on the same route with sent=1 to cleanup form
+					return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
+				//Catch obvious transport exception
+				} catch(TransportExceptionInterface $e) {
+					//Add error message mail unreachable
+					$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% tried subscribe but unable to contact', array('%mail%' => $data['mail']))));
 				}
 			}
 		}
@@ -638,37 +932,6 @@ class DefaultController extends AbstractController {
 			//Context
 			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['register']['view']['context']
 		);
-	}
-
-	/**
-	 * Recursively flatten an array
-	 *
-	 * @param array $data The data tree
-	 * @param string|null $current The current prefix
-	 * @param string $sep The key separator
-	 * @param string $prefix The key prefix
-	 * @param string $suffix The key suffix
-	 * @return array The flattened data
-	 */
-	protected function flatten($data, $current = null, $sep = '.', $prefix = '', $suffix = '') {
-		//Init result
-		$ret = [];
-
-		//Look for data array
-		if (is_array($data)) {
-			//Iteare on each pair
-			foreach($data as $k => $v) {
-				//Merge flattened value in return array
-				$ret += $this->flatten($v, empty($current) ? $k : $current.$sep.$k, $sep, $prefix, $suffix);
-			}
-		//Look flat data
-		} else {
-			//Store data in flattened key
-			$ret[$prefix.$current.$suffix] = $data;
-		}
-
-		//Return result
-		return $ret;
 	}
 
 	/**
