@@ -14,10 +14,12 @@ namespace Rapsys\UserBundle\DependencyInjection;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
+use Rapsys\UserBundle\RapsysUserBundle;
+
 /**
  * This is the class that validates and merges configuration from your app/config files.
  *
- * @link http://symfony.com/doc/current/cookbook/bundles/configuration.html}
+ * @link http://symfony.com/doc/current/cookbook/bundles/configuration.html
  *
  * {@inheritdoc}
  */
@@ -27,7 +29,7 @@ class Configuration implements ConfigurationInterface {
 	 */
 	public function getConfigTreeBuilder(): TreeBuilder {
 		//Set tree builder
-		$treeBuilder = new TreeBuilder('rapsys_user');
+		$treeBuilder = new TreeBuilder(RapsysUserBundle::getAlias());
 
 		//The bundle default values
 		$defaults = [
@@ -96,7 +98,7 @@ class Configuration implements ConfigurationInterface {
 				'route' => ['index' => 'index_url', 'recover' => 'recover_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/recover.html.twig',
-					'form' => 'Rapsys\UserBundle\Form\RecoverType',
+					'form' => 'Rapsys\UserBundle\Form\LoginType',
 					'context' => []
 				],
 				'mail' => [
