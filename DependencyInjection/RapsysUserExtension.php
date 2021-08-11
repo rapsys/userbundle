@@ -5,6 +5,8 @@ namespace Rapsys\UserBundle\DependencyInjection;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 
+use Rapsys\UserBundle\RapsysUserBundle;
+
 /**
  * This is the class that loads and manages your bundle configuration.
  *
@@ -24,18 +26,18 @@ class RapsysUserExtension extends Extension {
 		//Detect when no user configuration is provided
 		if ($configs === [[]]) {
 			//Prepend default config
-			$container->prependExtensionConfig($this->getAlias(), $config);
+			$container->prependExtensionConfig(self::getAlias(), $config);
 		}
 
 		//Save configuration in parameters
-		$container->setParameter($this->getAlias(), $config);
+		$container->setParameter(self::getAlias(), $config);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getAlias() {
-		return 'rapsys_user';
+	public function getAlias(): string {
+		return RapsysUserBundle::getAlias();
 	}
 
 	/**
