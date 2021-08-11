@@ -271,7 +271,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get civility
 	 */
-	public function getCivility(): Civility {
+	public function getCivility(): ?Civility {
 		return $this->civility;
 	}
 
