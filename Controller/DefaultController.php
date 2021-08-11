@@ -2,24 +2,30 @@
 
 namespace Rapsys\UserBundle\Controller;
 
+use Doctrine\Bundle\DoctrineBundle\Registry;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Form\FormError;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Translation\TranslatorInterface;
-use Psr\Log\LoggerInterface;
 
 use Rapsys\PackBundle\Util\SluggerUtil;
+use Rapsys\UserBundle\RapsysUserBundle;
 
 class DefaultController extends AbstractController {
 	//Config array
@@ -32,6 +38,7 @@ class DefaultController extends AbstractController {
 	 * Constructor
 	 *
 	 * @TODO: move all canonical and other view related stuff in an user AbstractController like in RapsysAir render feature !!!!
+	 * @TODO: add resetpassword ? with $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY'); https://symfony.com/doc/current/security/remember_me.html
 	 *
 	 * @param ContainerInterface $container The containter instance
 	 * @param RouterInterface $router The router instance
@@ -39,7 +46,7 @@ class DefaultController extends AbstractController {
 	 */
 	public function __construct(ContainerInterface $container, RouterInterface $router, TranslatorInterface $translator) {
 		//Retrieve config
-		$this->config = $container->getParameter($this->getAlias());
+		$this->config = $container->getParameter(self::getAlias());
 
 		//Set the translator
 		$this->translator = $translator;
@@ -222,20 +229,18 @@ class DefaultController extends AbstractController {
 	 * Confirm account from mail link
 	 *
 	 * @param Request $request The request
+	 * @param Registry $manager The doctrine registry
 	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param EntityManagerInterface $manager The doctrine entity manager
 	 * @param SluggerUtil $slugger The slugger
 	 * @param MailerInterface $mailer The mailer
 	 * @param string $mail The shorted mail address
-	 * @param string $extra The serialized then shorted extra array
 	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function confirm(Request $request, UserPasswordEncoderInterface $encoder, SluggerUtil $slugger, MailerInterface $mailer, $mail, $extra, $hash) {
-		//Get doctrine
-		$doctrine = $this->getDoctrine();
-
+	public function confirm(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, $mail, $hash) {
 		//With invalid hash
-		if ($hash != $slugger->hash($mail.$extra)) {
+		if ($hash != $slugger->hash($mail)) {
 			//Throw bad request
 			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
 		}
@@ -246,150 +251,69 @@ class DefaultController extends AbstractController {
 		//Without valid mail
 		if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
 			//Throw bad request
-			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $mail]));
+			//XXX: prevent slugger reverse engineering by not displaying decoded mail
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
 		}
 
-		//With existing subscriber
-		if ($doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail)) {
+		//Without existing registrant
+		if (!($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 			//Add error message mail already exists
-			$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
+			//XXX: prevent slugger reverse engineering by not displaying decoded mail
+			$this->addFlash('error', $this->translator->trans('Account %mail% do not exists', ['%mail%' => $smail]));
 
-			//Redirect to user view
-			return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']);
+			//Redirect to register view
+			return $this->redirectToRoute($this->config['route']['register']['name'], ['mail' => $smail, 'field' => $sfield = $slugger->serialize([]), 'hash' => $slugger->hash($smail.$sfield)]+$this->config['route']['register']['context']);
 		}
 
-		//Get extra
-		$extra = $slugger->unserialize($sextra = $extra);
+		//Set active
+		$user->setActive(true);
 
-		//Without valid extra
-		if (!is_array($extra)) {
-			//Throw bad request
-			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'extra', '%value%' => $sextra]));
-		}
-
-		//Extract names and pseudonym from mail
-		$names = explode(' ', $pseudonym = ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
-
-		//Get manager
-		$manager = $doctrine->getManager();
-
-		//Init reflection
-		$reflection = new \ReflectionClass($this->config['class']['user']);
-
-		//Create new user
-		$user = $reflection->newInstance();
-
-		//Set mail
-		$user->setMail($mail);
-
-		//Set default value
-		$default = [
-			'civility(title)' => $this->config['default']['civility'],
-			'pseudonym' => $pseudonym,
-			'forename' => $names[0]??$pseudonym,
-			'surname' => $names[1]??$pseudonym,
-			'password' => $encoder->encodePassword($user, $mail),
-			'active' => true
-		];
-
-		//Iterate on each default value
-		//TODO: store add/set action between [] ???
-		foreach($extra+$default as $key => $value) {
-			//Set member
-			$member = $key;
-
-			//With title entity
-			if (substr($key, -strlen('(title)')) === '(title)') {
-				//Remove field info
-				$member = substr($member, 0, -strlen('(title)'));
-
-				//Get object as value
-				$value = $doctrine->getRepository($this->config['class'][$member])->findOneByTitle($value);
-			//With id entity
-			} elseif (substr($key, -strlen('(id)')) === '(id)') {
-				//Remove field info
-				$member = substr($member, 0, -strlen('(id)'));
-
-				//Get object as value
-				$value = $doctrine->getRepository($this->config['class'][$key])->findOneById($value);
-			}
-
-			//Set value
-			$user->{'set'.ucfirst($member)}($value);
-
-			//Unset extra value
-			unset($extra[$key]);
-		}
-
-		//Iterate on default group
-		foreach($this->config['default']['group'] as $i => $groupTitle) {
-			//Fetch group
-			if (($group = $doctrine->getRepository($this->config['class']['group'])->findOneByTitle($groupTitle))) {
-				//Set default group
-				//XXX: see vendor/symfony/security-core/Role/Role.php
-				$user->addGroup($group);
-			//Group not found
-			} else {
-				//Throw exception
-				//XXX: consider missing group as fatal
-				throw new \Exception(sprintf('Group from rapsys_user.default.group[%d] not found by title: %s', $i, $groupTitle));
-			}
-		}
-
-		$user->setCreated(new \DateTime('now'));
+		//Set updated
 		$user->setUpdated(new \DateTime('now'));
 
 		//Persist user
 		$manager->persist($user);
 
-		//Try saving in database
-		try {
-			//Send to database
-			$manager->flush();
+		//Send to database
+		$manager->flush();
 
-			//Add error message mail already exists
-			$this->addFlash('notice', $this->translator->trans('Your account has been created'));
-		//Catch double subscription
-		} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
-			//Add error message mail already exists
-			$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
-		}
+		//Add error message mail already exists
+		$this->addFlash('notice', $this->translator->trans('Your account has been activated'));
 
 		//Redirect to user view
-		return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']);
+		return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
 	}
 
 	/**
 	 * Edit account by shorted mail
 	 *
 	 * @param Request $request The request
+	 * @param Registry $manager The doctrine registry
+	 * @param EntityManagerInterface $manager The doctrine entity manager
 	 * @param SluggerUtil $slugger The slugger
 	 * @param string $mail The shorted mail address
+	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function edit(Request $request, SluggerUtil $slugger, $mail) {
-		//Get doctrine
-		$doctrine = $this->getDoctrine();
+	public function edit(Request $request, Registry $doctrine, EntityManagerInterface $manager, SluggerUtil $slugger, $mail, $hash) {
+		//With invalid hash
+		if ($hash != $slugger->hash($mail)) {
+			//Throw bad request
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+		}
 
 		//Get mail
 		$mail = $slugger->unshort($smail = $mail);
 
 		//With existing subscriber
 		if (empty($user = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
-			var_dump($mail);
 			//Throw not found
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
 			throw $this->createNotFoundException($this->translator->trans('Unable to find account %mail%', ['%mail%' => $smail]));
 		}
 
-		//Get user token
-		$token = new UsernamePasswordToken($user, null, 'none', $user->getRoles());
-
-		//Check if guest
-		$isGuest = $this->get('rapsys_user.access_decision_manager')->decide($token, ['ROLE_GUEST']);
-
 		//Prevent access when not admin, user is not guest and not currently logged user
-		if (!$this->isGranted('ROLE_ADMIN') && empty($isGuest) && $user != $this->getUser()) {
+		if (!$this->isGranted('ROLE_ADMIN') && $user != $this->getUser()) {
 			//Throw access denied
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
 			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user: %mail%', ['%mail%' => $smail]));
@@ -398,7 +322,7 @@ class DefaultController extends AbstractController {
 		//Create the RegisterType form and give the proper parameters
 		$form = $this->createForm($this->config['register']['view']['form'], $user, [
 			//Set action to register route name and context
-			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']),
+			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']),
 			//Set civility class
 			'civility_class' => $this->config['class']['civility'],
 			//Set civility default
@@ -420,9 +344,6 @@ class DefaultController extends AbstractController {
 				//Set data
 				$data = $form->getData();
 
-				//Get manager
-				$manager = $doctrine->getManager();
-
 				//Queue snippet save
 				$manager->persist($data);
 
@@ -430,18 +351,18 @@ class DefaultController extends AbstractController {
 				$manager->flush();
 
 				//Add notice
-				$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail]));
+				$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail = $data->getMail()]));
 
 				//Redirect to user view
 				//TODO: extract referer ??? or useless ???
-				return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail]+$this->config['route']['edit']['context']);
+				return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
 
 				//Redirect to cleanup the form
 				return $this->redirectToRoute('rapsys_air', ['user' => $data->getId()]);
 			}
 		} else {
 			//Add notice
-			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail %mail% and any password then follow the procedure', ['%mail%' => $mail]));
+			$this->addFlash('notice', $this->translator->trans('To change your password relogin with your mail %mail% and any password then follow the procedure', ['%mail%' => $mail]));
 		}
 
 		//Render view
@@ -456,23 +377,52 @@ class DefaultController extends AbstractController {
 	/**
 	 * Login
 	 *
+	 * @todo When account is not activated, refuse login and send verification mail ?
+	 * @todo Redirect to referer if route is not connect ?
+	 *
 	 * @param Request $request The request
 	 * @param AuthenticationUtils $authenticationUtils The authentication utils
+	 * @param RouterInterface $router The router instance
+	 * @param SluggerUtil $slugger The slugger
+	 * @param string $mail The shorted mail address
+	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function login(Request $request, AuthenticationUtils $authenticationUtils) {
+	public function login(Request $request, AuthenticationUtils $authenticationUtils, RouterInterface $router, SluggerUtil $slugger, $mail, $hash) {
 		//Create the LoginType form and give the proper parameters
 		$login = $this->createForm($this->config['login']['view']['form'], null, [
 			//Set action to login route name and context
 			'action' => $this->generateUrl($this->config['route']['login']['name'], $this->config['route']['login']['context']),
+			//Disable repeated password
+			'password_repeated' => false,
+			//Set method
 			'method' => 'POST'
 		]);
 
 		//Init context
 		$context = [];
 
+		//With mail
+		if (!empty($mail) && !empty($hash)) {
+			//With invalid hash
+			if ($hash != $slugger->hash($mail)) {
+				//Throw bad request
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+			}
+
+			//Get mail
+			$mail = $slugger->unshort($smail = $mail);
+
+			//Without valid mail
+			if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
+				//Throw bad request
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
+			}
+
+			//Prefilled mail
+			$login->get('mail')->setData($mail);
 		//Last username entered by the user
-		if ($lastUsername = $authenticationUtils->getLastUsername()) {
+		} elseif ($lastUsername = $authenticationUtils->getLastUsername()) {
 			$login->get('mail')->setData($lastUsername);
 		}
 
@@ -484,7 +434,7 @@ class DefaultController extends AbstractController {
 			//Add error message to mail field
 			$login->get('mail')->addError(new FormError($error));
 
-			//Create the RecoverType form and give the proper parameters
+			//Create the LoginType form and give the proper parameters
 			$recover = $this->createForm($this->config['recover']['view']['form'], null, [
 				//Set action to recover route name and context
 				'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
@@ -505,6 +455,7 @@ class DefaultController extends AbstractController {
 			$context['recover'] = $recover->createView();
 		} else {
 			//Add notice
+			//TODO: drop it if referer route is recover ?
 			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
 		}
 
@@ -521,7 +472,9 @@ class DefaultController extends AbstractController {
 	 * Recover account
 	 *
 	 * @param Request $request The request
+	 * @param Registry $manager The doctrine registry
 	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param EntityManagerInterface $manager The doctrine entity manager
 	 * @param SluggerUtil $slugger The slugger
 	 * @param MailerInterface $mailer The mailer
 	 * @param string $mail The shorted mail address
@@ -529,13 +482,10 @@ class DefaultController extends AbstractController {
 	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function recover(Request $request, UserPasswordEncoderInterface $encoder, SluggerUtil $slugger, MailerInterface $mailer, $mail, $pass, $hash) {
-		//Get doctrine
-		$doctrine = $this->getDoctrine();
-
+	public function recover(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, $mail, $pass, $hash) {
 		//Without mail, pass and hash
 		if (empty($mail) && empty($pass) && empty($hash)) {
-			//Create the RecoverType form and give the proper parameters
+			//Create the LoginType form and give the proper parameters
 			$form = $this->createForm($this->config['recover']['view']['form'], null, [
 				//Set action to recover route name and context
 				'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
@@ -658,7 +608,8 @@ class DefaultController extends AbstractController {
 		//Without valid mail
 		if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
 			//Throw bad request
-			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $mail]));
+			//XXX: prevent slugger reverse engineering by not displaying decoded mail
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
 		}
 
 		//With existing subscriber
@@ -675,7 +626,7 @@ class DefaultController extends AbstractController {
 			throw $this->createNotFoundException($this->translator->trans('Outdated recover link'));
 		}
 
-		//Create the RecoverType form and give the proper parameters
+		//Create the LoginType form and give the proper parameters
 		$form = $this->createForm($this->config['recover']['view']['form'], $user, [
 			//Set action to recover route name and context
 			'action' => $this->generateUrl($this->config['route']['recover']['name'], ['mail' => $smail, 'pass' => $pass, 'hash' => $hash]+$this->config['route']['recover']['context']),
@@ -705,9 +656,6 @@ class DefaultController extends AbstractController {
 				//Set updated
 				$user->setUpdated(new \DateTime('now'));
 
-				//Get manager
-				$manager = $doctrine->getManager();
-
 				//Persist user
 				$manager->persist($user);
 
@@ -735,30 +683,56 @@ class DefaultController extends AbstractController {
 	 * Register an account
 	 *
 	 * @param Request $request The request
+	 * @param Registry $manager The doctrine registry
 	 * @param UserPasswordEncoderInterface $encoder The password encoder
+	 * @param EntityManagerInterface $manager The doctrine entity manager
 	 * @param SluggerUtil $slugger The slugger
 	 * @param MailerInterface $mailer The mailer
 	 * @param LoggerInterface $logger The logger
+	 * @param string $mail The shorted mail address
 	 * @param string $field The serialized then shorted form field array
 	 * @param string $hash The hashed serialized field array
 	 * @return Response The response
 	 */
-	public function register(Request $request, UserPasswordEncoderInterface $encoder, SluggerUtil $slugger, MailerInterface $mailer, LoggerInterface $logger, $field, $hash) {
-		//Get doctrine
-		$doctrine = $this->getDoctrine();
+	public function register(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, LoggerInterface $logger, $mail, $field, $hash) {
+		//Init reflection
+		$reflection = new \ReflectionClass($this->config['class']['user']);
 
-		//With field
+		//Create new user
+		$user = $reflection->newInstance();
+
+		//With mail and field
 		if (!empty($field) && !empty($hash)) {
 			//With invalid hash
-			if ($hash != $slugger->hash($field)) {
+			if ($hash != $slugger->hash($mail.$field)) {
 				//Throw bad request
 				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+			}
+
+			//With mail
+			if (!empty($mail)) {
+				//Get mail
+				$mail = $slugger->unshort($smail = $mail);
+
+				//Without valid mail
+				if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
+					//Throw bad request
+					//XXX: prevent slugger reverse engineering by not displaying decoded mail
+					throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
+				}
+
+				//Set mail
+				$user->setMail($mail);
+			//Without mail
+			} else {
+				//Set smail
+				$smail = $mail;
 			}
 
 			//Try
 			try {
 				//Unshort then unserialize field
-				$field = $slugger->unserialize($field);
+				$field = $slugger->unserialize($sfield = $field);
 			//Catch type error
 			} catch (\Error|\Exception $e) {
 				//Throw bad request
@@ -772,14 +746,20 @@ class DefaultController extends AbstractController {
 			}
 		//Without field and hash
 		} else {
+			//Set smail
+			$smail = $mail;
+
+			//Set smail
+			$sfield = $sfield;
+
 			//Reset field
 			$field = [];
 		}
 
 		//Create the RegisterType form and give the proper parameters
-		$form = $this->createForm($this->config['register']['view']['form'], null, $field+[
+		$form = $this->createForm($this->config['register']['view']['form'], $user, $field+[
 			//Set action to register route name and context
-			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
+			'action' => $this->generateUrl($this->config['route']['register']['name'], ['mail' => $smail, 'field' => $sfield, 'hash' => $hash]+$this->config['route']['register']['context']),
 			//Set civility class
 			'civility_class' => $this->config['class']['civility'],
 			//Set civility default
@@ -798,44 +778,62 @@ class DefaultController extends AbstractController {
 				//Set data
 				$data = $form->getData();
 
+				//With existing registrant
+				if ($doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail = $data->getMail())) {
+					//Add error message mail already exists
+					$this->addFlash('warning', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
+
+					//Redirect to user view
+					return $this->redirectToRoute(
+						$this->config['route']['edit']['name'],
+						[
+							'mail' => $smail = $slugger->short($mail),
+							'hash' => $slugger->hash($smail)
+						]+$this->config['route']['edit']['context']
+					);
+				}
+
 				//Set mail shortcut
 				$registerMail =& $this->config['register']['mail'];
 
-				//Set extra
-				$extra = [];
+				//Extract names and pseudonym from mail
+				$names = explode(' ', $pseudonym = ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $data->getMail()))))));
 
-				//Init reflection
-				$reflection = new \ReflectionClass($this->config['class']['user']);
+				//Set pseudonym
+				$user->setPseudonym($user->getPseudonym()??$pseudonym);
 
-				//Create new user
-				$user = $reflection->newInstance();
+				//Set forename
+				$user->setForename($user->getForename()??$names[0]);
 
-				//Iterate on each entry
-				//TODO: store add/set action between [] ???
-				foreach($data as $key => $value) {
-					//Skip mail
-					if ($key == 'mail') {
-						continue;
-					//Store shorted title
-					} elseif (is_callable([$value, 'getTitle'])) {
-						$extra[$key.'(title)'] = $value->getTitle();
-					//Store shorted id
-					} elseif (is_callable([$value, 'getId'])) {
-						$extra[$key.'(id)'] = $value->getId();
-					//Store encoded password
-					} elseif(!empty($value) && $key == 'password') {
-						$extra['password'] = $encoder->encodePassword($user, $value);
-					//Store shorted value
-					} elseif (!empty($value)) {
-						$extra[$key] = $value;
+				//Set surname
+				$user->setSurname($user->getSurname()??$names[1]??$names[0]);
+
+				//Set password
+				$user->setPassword($encoder->encodePassword($user, $user->getPassword()??$data->getMail()));
+
+				//Set created
+				$user->setCreated(new \DateTime('now'));
+
+				//Set updated
+				$user->setUpdated(new \DateTime('now'));
+
+				//Persist user
+				$manager->persist($user);
+
+				//Iterate on default group
+				foreach($this->config['default']['group'] as $i => $groupTitle) {
+					//Fetch group
+					if (($group = $doctrine->getRepository($this->config['class']['group'])->findOneByTitle($groupTitle))) {
+						//Set default group
+						//XXX: see vendor/symfony/security-core/Role/Role.php
+						$user->addGroup($group);
+					//Group not found
+					} else {
+						//Throw exception
+						//XXX: consider missing group as fatal
+						throw new \Exception(sprintf('Group from rapsys_user.default.group[%d] not found by title: %s', $i, $groupTitle));
 					}
 				}
-
-				//Set mail
-				$mail = $slugger->short($data['mail']);
-
-				//Set extra
-				$extra = $slugger->serialize($extra);
 
 				//Generate each route route
 				foreach($this->config['register']['route'] as $route => $tag) {
@@ -848,9 +846,8 @@ class DefaultController extends AbstractController {
 								$this->config['route'][$route]['name'],
 								//Prepend subscribe context with tag
 								[
-									'mail' => $mail,
-									'extra' => $extra,
-									'hash' => $slugger->hash($mail.$extra)
+									'mail' => $smail = $slugger->short($data->getMail()),
+									'hash' => $slugger->hash($smail)
 								]+$this->config['route'][$route]['context'],
 								UrlGeneratorInterface::ABSOLUTE_URL
 							);
@@ -858,12 +855,16 @@ class DefaultController extends AbstractController {
 					}
 				}
 
+				//XXX: DEBUG: remove me
+				//die($registerMail['context']['confirm_url']);
+
 				//Log new user infos
+				//XXX: useless ???
 				$logger->emergency(
 					$this->translator->trans(
 						'newuser:mail=%mail%|locale=%locale%|confirm=%confirm%',
 						[
-							'%mail%' => $data['mail'],
+							'%mail%' => $data->getMail(),
 							'%locale%' => $request->getLocale(),
 							'%confirm%' => $registerMail['context'][$this->config['register']['route']['confirm']]
 						]
@@ -871,20 +872,13 @@ class DefaultController extends AbstractController {
 				);
 
 				//Set recipient_name
-				$registerMail['context']['recipient_mail'] = $data['mail'];
+				$registerMail['context']['recipient_mail'] = $data->getMail();
 
 				//Set recipient name
 				$registerMail['context']['recipient_name'] = '';
 
-				//With forename, surname and pseudonym
-				if (isset($data['forename']) && isset($data['surname']) && isset($data['pseudonym'])) {
-					//Set recipient name
-					$registerMail['context']['recipient_name'] = implode(' ', [$data['forename'], $data['surname'], $data['pseudonym']?'('.$data['pseudonym'].')':'']);
-				//With pseudonym
-				} elseif (isset($data['pseudonym'])) {
-					//Set recipient name
-					$registerMail['context']['recipient_name'] = $data['pseudonym'];
-				}
+				//Set recipient name
+				$registerMail['context']['recipient_name'] = implode(' ', [$data->getForename(), $data->getSurname(), $data->getPseudonym()?'('.$data->getPseudonym().')':'']);
 
 				//Init subject context
 				$subjectContext = $slugger->flatten(array_replace_recursive($this->config['register']['view']['context'], $registerMail['context']), null, '.', '%', '%');
@@ -909,18 +903,31 @@ class DefaultController extends AbstractController {
 					//Set context
 					->context(['subject' => $registerMail['subject']]+$registerMail['context']);
 
-				//Try sending message
-				//XXX: mail delivery may silently fail
+				//Try saving in database
 				try {
-					//Send message
-					$mailer->send($message);
+					//Send to database
+					$manager->flush();
 
-					//Redirect on the same route with sent=1 to cleanup form
-					return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
-				//Catch obvious transport exception
-				} catch(TransportExceptionInterface $e) {
-					//Add error message mail unreachable
-					$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% tried subscribe but unable to contact', array('%mail%' => $data['mail']))));
+					//Add error message mail already exists
+					$this->addFlash('notice', $this->translator->trans('Your account has been created'));
+
+					//Try sending message
+					//XXX: mail delivery may silently fail
+					try {
+						//Send message
+						$mailer->send($message);
+
+						//Redirect on the same route with sent=1 to cleanup form
+						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
+					//Catch obvious transport exception
+					} catch(TransportExceptionInterface $e) {
+						//Add error message mail unreachable
+						$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% tried subscribe but unable to contact', ['%mail%' => $data->getMail()])));
+					}
+				//Catch double subscription
+				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+					//Add error message mail already exists
+					$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
 				}
 			}
 		}
@@ -937,7 +944,7 @@ class DefaultController extends AbstractController {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getAlias() {
-		return 'rapsys_user';
+	public function getAlias(): string {
+		return RapsysUserBundle::getAlias();
 	}
 }
