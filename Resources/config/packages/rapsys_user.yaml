@@ -10,3 +10,6 @@ services:
         arguments: [ '@service_container', '@router', '@translator' ]
         autowire: true
         tags: [ 'controller.service_arguments' ]
+    #Register logout success handler
+    Rapsys\UserBundle\Handler\LogoutSuccessHandler:
+        arguments: [ '@service_container', '@router' ]
