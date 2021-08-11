@@ -21,6 +21,7 @@ class RegisterType extends AbstractType {
 	 * {@inheritdoc}
 	 */
 	public function buildForm(FormBuilderInterface $builder, array $options) {
+		//Create form
 		$form = $builder;
 
 		//Add extra mail field
@@ -30,7 +31,7 @@ class RegisterType extends AbstractType {
 
 		//Add extra civility field
 		if (!empty($options['civility'])) {
-			$form->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'constraints' => [new NotBlank(['message' => 'Please provide your civility'])], 'choice_translation_domain' => true, 'data' => $options['civility_default']]);
+			$form->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'constraints' => [new NotBlank(['message' => 'Please provide your civility'])], 'choice_translation_domain' => true, 'empty_data' => $options['civility_default']]);
 		}
 
 		//Add extra pseudonym field
