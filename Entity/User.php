@@ -428,7 +428,8 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Check if account is activated
 	 *
-	 * @xxx was from deprecated AdvancedUserInterface, see if it's used anymore
+	 * It was from deprecated AdvancedUserInterface, see if it's used anymore
+	 *
 	 * @see vendor/symfony/security-core/User/AdvancedUserInterface.php
 	 */
 	public function isActivated(): bool {
@@ -438,7 +439,8 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Check if account is disabled
 	 *
-	 * @xxx was from deprecated AdvancedUserInterface, see if it's used anymore
+	 * It was from deprecated AdvancedUserInterface, see if it's used anymore
+	 *
 	 * @see vendor/symfony/security-core/User/AdvancedUserInterface.php
 	 */
 	public function isDisabled(): bool {
