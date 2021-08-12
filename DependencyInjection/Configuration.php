@@ -81,8 +81,9 @@ class Configuration implements ConfigurationInterface {
 			'edit' => [
 				'route' => ['index' => 'index_url'],
 				'view' => [
-					'form' => 'Rapsys\UserBundle\Form\RegisterType',
 					'name' => '@RapsysUser/form/register.html.twig',
+					'edit' => 'Rapsys\UserBundle\Form\RegisterType',
+					'reset' => 'Rapsys\UserBundle\Form\LoginType',
 					'context' => []
 				]
 			],
@@ -111,8 +112,8 @@ class Configuration implements ConfigurationInterface {
 			'register' => [
 				'route' => ['index' => 'index_url', 'confirm' => 'confirm_url'],
 				'view' => [
-					'form' => 'Rapsys\UserBundle\Form\RegisterType',
 					'name' => '@RapsysUser/form/register.html.twig',
+					'form' => 'Rapsys\UserBundle\Form\RegisterType',
 					'context' => []
 				],
 				'mail' => [
@@ -260,7 +261,8 @@ class Configuration implements ConfigurationInterface {
 							->arrayNode('view')
 								->addDefaultsIfNotSet()
 								->children()
-									->scalarNode('form')->cannotBeEmpty()->defaultValue($defaults['edit']['view']['form'])->end()
+									->scalarNode('edit')->cannotBeEmpty()->defaultValue($defaults['edit']['view']['edit'])->end()
+									->scalarNode('reset')->cannotBeEmpty()->defaultValue($defaults['edit']['view']['reset'])->end()
 									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['edit']['view']['name'])->end()
 									->arrayNode('context')
 										->treatNullLike([])
