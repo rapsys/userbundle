@@ -1,4 +1,13 @@
-<?php
+<?php declare(strict_types=1);
+
+/*
+ * This file is part of the Rapsys UserBundle package.
+ *
+ * (c) Raphaël Gertz <symfony@rapsys.eu>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Rapsys\UserBundle\DependencyInjection;
 
@@ -16,7 +25,7 @@ class RapsysUserExtension extends Extension {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function load(array $configs, ContainerBuilder $container) {
+	public function load(array $configs, ContainerBuilder $container): void {
 		//Load configuration
 		$configuration = $this->getConfiguration($configs, $container);
 
@@ -39,34 +48,4 @@ class RapsysUserExtension extends Extension {
 	public function getAlias(): string {
 		return RapsysUserBundle::getAlias();
 	}
-
-	/**
-	 * The function that parses the array to flatten it into a one level depth array
-	 *
-	 * @param $array	The config values array
-	 * @param $path		The current key path
-	 * @param $depth	The maxmium depth
-	 * @param $sep		The separator string
-	 */
-	/*protected function flatten($array, $path = '', $depth = 10, $sep = '.') {
-		//Init res
-		$res = array();
-
-		//Pass through non hashed or empty array
-		if ($depth && is_array($array) && ($array === [] || array_keys($array) === range(0, count($array) - 1))) {
-			$res[$path] = $array;
-		//Flatten hashed array
-		} elseif ($depth && is_array($array)) {
-			foreach($array as $k => $v) {
-				$sub = $path ? $path.$sep.$k:$k;
-				$res += $this->flatten($v, $sub, $depth - 1, $sep);
-			}
-		//Pass scalar value directly
-		} else {
-			$res[$path] = $array;
-		}
-
-		//Return result
-		return $res;
-	}*/
 }
