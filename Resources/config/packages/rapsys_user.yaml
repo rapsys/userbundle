@@ -14,7 +14,14 @@ services:
     security.authentication.success_handler:
         class: 'Rapsys\UserBundle\Handler\AuthenticationSuccessHandler'
         arguments: [ '@router', {} ]
+    #Register Authentication failure handler
+    security.authentication.failure_handler:
+        class: 'Rapsys\UserBundle\Handler\AuthenticationFailureHandler'
+        arguments: [ '@http_kernel', '@security.http_utils', {}, '@logger', '@service_container', '@router', '@rapsys_pack.slugger_util']
     #Register logout success handler
     security.logout.success_handler:
         class: 'Rapsys\UserBundle\Handler\LogoutSuccessHandler'
         arguments: [ '@service_container', '/', '@router' ]
+    #Register security user checker
+    security.user_checker:
+        class: 'Rapsys\UserBundle\Checker\UserChecker'
