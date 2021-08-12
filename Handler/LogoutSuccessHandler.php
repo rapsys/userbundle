@@ -32,6 +32,9 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 	protected $targetUrl;
 
 	/**
+	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
+	 * @see vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +360
+	 *
 	 * {@inheritdoc}
 	 */
 	public function __construct(ContainerInterface $container, string $targetUrl = '/', RouterInterface $router) {

@@ -17,6 +17,4 @@ services:
     #Register logout success handler
     security.logout.success_handler:
         class: 'Rapsys\UserBundle\Handler\LogoutSuccessHandler'
-        #XXX: second argument will be replaced there by kernel.mail.logout.target
-        #XXX: vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +360
         arguments: [ '@service_container', '/', '@router' ]
