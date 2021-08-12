@@ -1,4 +1,13 @@
-<?php
+<?php declare(strict_types=1);
+
+/*
+ * This file is part of the Rapsys PackBundle package.
+ *
+ * (c) Raphaël Gertz <symfony@rapsys.eu>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Rapsys\UserBundle\Form;
 
@@ -20,7 +29,7 @@ class RegisterType extends AbstractType {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function buildForm(FormBuilderInterface $builder, array $options) {
+	public function buildForm(FormBuilderInterface $builder, array $options): FormBuilderInterface {
 		//Create form
 		$form = $builder;
 
@@ -64,7 +73,7 @@ class RegisterType extends AbstractType {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function configureOptions(OptionsResolver $resolver) {
+	public function configureOptions(OptionsResolver $resolver): void {
 		//Set defaults
 		$resolver->setDefaults(['error_bubbling' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'civility' => true, 'pseudonym' => true, 'forename' => true, 'surname' => true, 'password' => true]);
 
@@ -92,15 +101,12 @@ class RegisterType extends AbstractType {
 
 		//Add extra password option
 		$resolver->setAllowedTypes('password', 'boolean');
-
-		//Return resolver
-		return $resolver;
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getName() {
+	public function getName(): string {
 		return 'rapsys_user_register';
 	}
 }
