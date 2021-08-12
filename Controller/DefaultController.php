@@ -1,4 +1,13 @@
-<?php
+<?php declare(strict_types=1);
+
+/*
+ * This file is part of the Rapsys UserBundle package.
+ *
+ * (c) Raphaël Gertz <symfony@rapsys.eu>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Rapsys\UserBundle\Controller;
 
@@ -10,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -38,7 +48,6 @@ class DefaultController extends AbstractController {
 	 * Constructor
 	 *
 	 * @TODO: move all canonical and other view related stuff in an user AbstractController like in RapsysAir render feature !!!!
-	 * @TODO: add resetpassword ? with $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY'); https://symfony.com/doc/current/security/remember_me.html
 	 *
 	 * @param ContainerInterface $container The containter instance
 	 * @param RouterInterface $router The router instance
@@ -238,7 +247,7 @@ class DefaultController extends AbstractController {
 	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function confirm(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, $mail, $hash) {
+	public function confirm(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, $mail, $hash): Response {
 		//With invalid hash
 		if ($hash != $slugger->hash($mail)) {
 			//Throw bad request
@@ -289,13 +298,14 @@ class DefaultController extends AbstractController {
 	 *
 	 * @param Request $request The request
 	 * @param Registry $manager The doctrine registry
+	 * @param UserPasswordEncoderInterface $encoder The password encoder
 	 * @param EntityManagerInterface $manager The doctrine entity manager
 	 * @param SluggerUtil $slugger The slugger
 	 * @param string $mail The shorted mail address
 	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function edit(Request $request, Registry $doctrine, EntityManagerInterface $manager, SluggerUtil $slugger, $mail, $hash) {
+	public function edit(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, $mail, $hash): Response {
 		//With invalid hash
 		if ($hash != $slugger->hash($mail)) {
 			//Throw bad request
@@ -313,14 +323,14 @@ class DefaultController extends AbstractController {
 		}
 
 		//Prevent access when not admin, user is not guest and not currently logged user
-		if (!$this->isGranted('ROLE_ADMIN') && $user != $this->getUser()) {
+		if (!$this->isGranted('ROLE_ADMIN') && $user != $this->getUser() || !$this->isGranted('IS_AUTHENTICATED_FULLY')) {
 			//Throw access denied
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
 			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user: %mail%', ['%mail%' => $smail]));
 		}
 
 		//Create the RegisterType form and give the proper parameters
-		$form = $this->createForm($this->config['register']['view']['form'], $user, [
+		$editForm = $this->createForm($this->config['register']['view']['form'], $user, [
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']),
 			//Set civility class
@@ -330,19 +340,91 @@ class DefaultController extends AbstractController {
 			//Disable mail
 			'mail' => $this->isGranted('ROLE_ADMIN'),
 			//Disable password
-			//XXX: prefer a reset on login to force user unspam action
 			'password' => false,
 			//Set method
 			'method' => 'POST'
 		]);
 
+		//Create the RegisterType form and give the proper parameters
+		$edit = $this->createForm($this->config['edit']['view']['edit'], $user, [
+			//Set action to register route name and context
+			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']),
+			//Set civility class
+			'civility_class' => $this->config['class']['civility'],
+			//Set civility default
+			'civility_default' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
+			//Disable mail
+			'mail' => $this->isGranted('ROLE_ADMIN'),
+			//Disable password
+			'password' => false,
+			//Set method
+			'method' => 'POST'
+		]);
+
+		//With admin role
+		if ($this->isGranted('ROLE_ADMIN')) {
+			//Create the LoginType form and give the proper parameters
+			$reset = $this->createForm($this->config['edit']['view']['reset'], $user, [
+				//Set action to register route name and context
+				'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']),
+				//Disable mail
+				'mail' => false,
+				//Set method
+				'method' => 'POST'
+			]);
+
+			//With post method
+			if ($request->isMethod('POST')) {
+				//Refill the fields in case the form is not valid.
+				$reset->handleRequest($request);
+
+				//With reset submitted and valid
+				if ($reset->isSubmitted() && $reset->isValid()) {
+					//Set data
+					$data = $reset->getData();
+
+					//Set password
+					$data->setPassword($encoder->encodePassword($data, $data->getPassword()));
+
+					//Set updated
+					$data->setUpdated(new \DateTime('now'));
+
+					//Queue snippet save
+					$manager->persist($data);
+
+					//Flush to get the ids
+					$manager->flush();
+
+					//Add notice
+					$this->addFlash('notice', $this->translator->trans('Account %mail% password updated', ['%mail%' => $mail = $data->getMail()]));
+
+					//Redirect to cleanup the form
+					//TODO: extract referer ??? or useless ???
+					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
+				}
+			}
+
+			//Add reset view
+			$this->config['edit']['view']['context']['reset'] = $reset->createView();
+		//Without admin role
+		//XXX: prefer a reset on login to force user unspam action
+		} else {
+			//Add notice
+			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
+		}
+
+		//With post method
 		if ($request->isMethod('POST')) {
 			//Refill the fields in case the form is not valid.
-			$form->handleRequest($request);
+			$edit->handleRequest($request);
 
-			if ($form->isValid()) {
+			//With edit submitted and valid
+			if ($edit->isSubmitted() && $edit->isValid()) {
 				//Set data
-				$data = $form->getData();
+				$data = $edit->getData();
+
+				//Set updated
+				$data->setUpdated(new \DateTime('now'));
 
 				//Queue snippet save
 				$manager->persist($data);
@@ -353,16 +435,10 @@ class DefaultController extends AbstractController {
 				//Add notice
 				$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail = $data->getMail()]));
 
-				//Redirect to user view
+				//Redirect to cleanup the form
 				//TODO: extract referer ??? or useless ???
 				return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
-
-				//Redirect to cleanup the form
-				return $this->redirectToRoute('rapsys_air', ['user' => $data->getId()]);
 			}
-		} else {
-			//Add notice
-			$this->addFlash('notice', $this->translator->trans('To change your password relogin with your mail %mail% and any password then follow the procedure', ['%mail%' => $mail]));
 		}
 
 		//Render view
@@ -370,15 +446,12 @@ class DefaultController extends AbstractController {
 			//Template
 			$this->config['edit']['view']['name'],
 			//Context
-			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['edit']['view']['context']
+			['edit' => $edit->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['edit']['view']['context']
 		);
 	}
 
 	/**
 	 * Login
-	 *
-	 * @todo When account is not activated, refuse login and send verification mail ?
-	 * @todo Redirect to referer if route is not connect ?
 	 *
 	 * @param Request $request The request
 	 * @param AuthenticationUtils $authenticationUtils The authentication utils
@@ -388,7 +461,7 @@ class DefaultController extends AbstractController {
 	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function login(Request $request, AuthenticationUtils $authenticationUtils, RouterInterface $router, SluggerUtil $slugger, $mail, $hash) {
+	public function login(Request $request, AuthenticationUtils $authenticationUtils, RouterInterface $router, SluggerUtil $slugger, $mail, $hash): Response {
 		//Create the LoginType form and give the proper parameters
 		$login = $this->createForm($this->config['login']['view']['form'], null, [
 			//Set action to login route name and context
@@ -482,7 +555,7 @@ class DefaultController extends AbstractController {
 	 * @param string $hash The hashed password
 	 * @return Response The response
 	 */
-	public function recover(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, $mail, $pass, $hash) {
+	public function recover(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, $mail, $pass, $hash): Response {
 		//Without mail, pass and hash
 		if (empty($mail) && empty($pass) && empty($hash)) {
 			//Create the LoginType form and give the proper parameters
@@ -694,7 +767,7 @@ class DefaultController extends AbstractController {
 	 * @param string $hash The hashed serialized field array
 	 * @return Response The response
 	 */
-	public function register(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, LoggerInterface $logger, $mail, $field, $hash) {
+	public function register(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, LoggerInterface $logger, $mail, $field, $hash): Response {
 		//Init reflection
 		$reflection = new \ReflectionClass($this->config['class']['user']);
 
