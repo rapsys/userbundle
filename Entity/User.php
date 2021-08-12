@@ -45,6 +45,11 @@ class User implements UserInterface, \Serializable {
 	protected $active;
 
 	/**
+	 * @var bool
+	 */
+	protected $disabled;
+
+	/**
 	 * @var \DateTime
 	 */
 	protected $created;
@@ -60,7 +65,7 @@ class User implements UserInterface, \Serializable {
 	protected $civility;
 
 	/**
-	 * @var \Doctrine\Common\Collections\Collection
+	 * @var \Doctrine\Common\Collections\ArrayCollection
 	 */
 	protected $groups;
 
@@ -69,6 +74,7 @@ class User implements UserInterface, \Serializable {
 	 */
 	public function __construct() {
 		$this->active = false;
+		$this->disabled = false;
 		$this->groups = new ArrayCollection();
 	}
 
@@ -77,7 +83,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return integer
 	 */
-	public function getId() {
+	public function getId(): int {
 		return $this->id;
 	}
 
@@ -88,7 +94,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setMail($mail) {
+	public function setMail(string $mail) {
 		$this->mail = $mail;
 
 		return $this;
@@ -99,7 +105,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getMail() {
+	public function getMail(): ?string {
 		return $this->mail;
 	}
 
@@ -110,7 +116,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setPseudonym($pseudonym) {
+	public function setPseudonym(string $pseudonym) {
 		$this->pseudonym = $pseudonym;
 
 		return $this;
@@ -121,7 +127,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getPseudonym() {
+	public function getPseudonym(): ?string {
 		return $this->pseudonym;
 	}
 
@@ -132,7 +138,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setForename($forename) {
+	public function setForename(string $forename) {
 		$this->forename = $forename;
 
 		return $this;
@@ -143,7 +149,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getForename() {
+	public function getForename(): ?string {
 		return $this->forename;
 	}
 
@@ -154,7 +160,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setSurname($surname) {
+	public function setSurname(string $surname) {
 		$this->surname = $surname;
 
 		return $this;
@@ -165,7 +171,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getSurname() {
+	public function getSurname(): ?string {
 		return $this->surname;
 	}
 
@@ -176,7 +182,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setPassword($password) {
+	public function setPassword(string $password) {
 		$this->password = $password;
 
 		return $this;
@@ -189,7 +195,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getPassword() {
+	public function getPassword(): ?string {
 		return $this->password;
 	}
 
@@ -200,7 +206,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setActive($active) {
+	public function setActive(bool $active) {
 		$this->active = $active;
 
 		return $this;
@@ -211,8 +217,30 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return bool
 	 */
-	public function getActive() {
+	public function getActive(): bool {
 		return $this->active;
+	}
+
+	/**
+	 * Set disabled
+	 *
+	 * @param bool $disabled
+	 *
+	 * @return User
+	 */
+	public function setDisabled(bool $disabled) {
+		$this->disabled = $disabled;
+
+		return $this;
+	}
+
+	/**
+	 * Get disabled
+	 *
+	 * @return bool
+	 */
+	public function getDisabled(): bool {
+		return $this->disabled;
 	}
 
 	/**
@@ -222,7 +250,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setCreated($created) {
+	public function setCreated(\DateTime $created) {
 		$this->created = $created;
 
 		return $this;
@@ -233,7 +261,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return \DateTime
 	 */
-	public function getCreated() {
+	public function getCreated(): \DateTime {
 		return $this->created;
 	}
 
@@ -244,7 +272,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setUpdated($updated) {
+	public function setUpdated(\DateTime $updated) {
 		$this->updated = $updated;
 
 		return $this;
@@ -255,7 +283,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return \DateTime
 	 */
-	public function getUpdated() {
+	public function getUpdated(): \DateTime {
 		return $this->updated;
 	}
 
@@ -300,16 +328,16 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get groups
 	 *
-	 * @return \Doctrine\Common\Collections\Collection
+	 * @return \Doctrine\Common\Collections\ArrayCollection
 	 */
-	public function getGroups() {
+	public function getGroups(): ArrayCollection {
 		return $this->groups;
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getRoles() {
+	public function getRoles(): array {
 		//Get the unique roles list by id
 		return array_unique(array_reduce(
 			//Cast groups as array
@@ -329,7 +357,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getRole() {
+	public function getRole(): ?string {
 		//Retrieve roles
 		$roles = $this->getRoles();
 
@@ -356,7 +384,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getSalt() {
+	public function getSalt(): ?string {
 		//No salt required with bcrypt
 		return null;
 	}
@@ -364,14 +392,14 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getUsername() {
+	public function getUsername(): string {
 		return $this->mail;
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function eraseCredentials() {}
+	public function eraseCredentials(): void {}
 
 	public function serialize(): string {
 		return serialize([
@@ -379,6 +407,7 @@ class User implements UserInterface, \Serializable {
 			$this->mail,
 			$this->password,
 			$this->active,
+			$this->disabled,
 			$this->created,
 			$this->updated
 		]);
@@ -390,14 +419,30 @@ class User implements UserInterface, \Serializable {
 			$this->mail,
 			$this->password,
 			$this->active,
+			$this->disabled,
 			$this->created,
 			$this->updated
 		) = unserialize($serialized);
 	}
 
-	//XXX: was from vendor/symfony/security-core/User/AdvancedUserInterface.php, see if it's used anymore
-	public function isEnabled() {
+	/**
+	 * Check if account is activated
+	 *
+	 * @xxx was from deprecated AdvancedUserInterface, see if it's used anymore
+	 * @see vendor/symfony/security-core/User/AdvancedUserInterface.php
+	 */
+	public function isActivated(): bool {
 		return $this->active;
+	}
+
+	/**
+	 * Check if account is disabled
+	 *
+	 * @xxx was from deprecated AdvancedUserInterface, see if it's used anymore
+	 * @see vendor/symfony/security-core/User/AdvancedUserInterface.php
+	 */
+	public function isDisabled(): bool {
+		return $this->disabled;
 	}
 
 	/**
