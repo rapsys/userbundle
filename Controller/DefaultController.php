@@ -24,12 +24,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
-use Symfony\Component\Routing\Exception\MethodNotAllowedException;
-use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Translation\TranslatorInterface;
@@ -277,9 +273,6 @@ class DefaultController extends AbstractController {
 		//Set active
 		$user->setActive(true);
 
-		//Set updated
-		$user->setUpdated(new \DateTime('now'));
-
 		//Persist user
 		$manager->persist($user);
 
@@ -386,9 +379,6 @@ class DefaultController extends AbstractController {
 					//Set password
 					$data->setPassword($encoder->encodePassword($data, $data->getPassword()));
 
-					//Set updated
-					$data->setUpdated(new \DateTime('now'));
-
 					//Queue snippet save
 					$manager->persist($data);
 
@@ -421,9 +411,6 @@ class DefaultController extends AbstractController {
 			if ($edit->isSubmitted() && $edit->isValid()) {
 				//Set data
 				$data = $edit->getData();
-
-				//Set updated
-				$data->setUpdated(new \DateTime('now'));
 
 				//Queue snippet save
 				$manager->persist($data);
@@ -723,9 +710,6 @@ class DefaultController extends AbstractController {
 				//Set user password
 				$user->setPassword($encoded);
 
-				//Set updated
-				$user->setUpdated(new \DateTime('now'));
-
 				//Persist user
 				$manager->persist($user);
 
@@ -793,6 +777,108 @@ class DefaultController extends AbstractController {
 
 				//Set mail
 				$user->setMail($mail);
+
+				//With existing registrant
+				if ($existing = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail)) {
+					//With disabled existing
+					if ($existing->isDisabled()) {
+						//Render view
+						return $this->render(
+							//Template
+							$this->config['register']['view']['name'],
+							//Context
+							['title' => $this->translator->trans('Access denied'), 'disabled' => 1]+$this->config['register']['view']['context'],
+							//Set 403
+							new Response('', 403)
+						);
+					//With unactivated existing
+					} elseif (!$existing->isActivated()) {
+						//Set mail shortcut
+						//TODO: change for activate ???
+						$activateMail =& $this->config['register']['mail'];
+
+						//Generate each route route
+						foreach($this->config['register']['route'] as $route => $tag) {
+							//Only process defined routes
+							if (!empty($this->config['route'][$route])) {
+								//Process for confirm url
+								if ($route == 'confirm') {
+									//Set the url in context
+									$activateMail['context'][$tag] = $this->get('router')->generate(
+										$this->config['route'][$route]['name'],
+										//Prepend subscribe context with tag
+										[
+											'mail' => $smail = $slugger->short($existing->getMail()),
+											'hash' => $slugger->hash($smail)
+										]+$this->config['route'][$route]['context'],
+										UrlGeneratorInterface::ABSOLUTE_URL
+									);
+								}
+							}
+						}
+
+						//Set recipient_name
+						$activateMail['context']['recipient_mail'] = $existing->getMail();
+
+						//Set recipient name
+						$activateMail['context']['recipient_name'] = implode(' ', [$existing->getForename(), $existing->getSurname(), $existing->getPseudonym()?'('.$existing->getPseudonym().')':'']);
+
+						//Init subject context
+						$subjectContext = $slugger->flatten(array_replace_recursive($this->config['register']['view']['context'], $activateMail['context']), null, '.', '%', '%');
+
+						//Translate subject
+						$activateMail['subject'] = ucfirst($this->translator->trans($activateMail['subject'], $subjectContext));
+
+						//Create message
+						$message = (new TemplatedEmail())
+							//Set sender
+							->from(new Address($this->config['contact']['mail'], $this->config['contact']['title']))
+							//Set recipient
+							//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+							->to(new Address($activateMail['context']['recipient_mail'], $activateMail['context']['recipient_name']))
+							//Set subject
+							->subject($activateMail['subject'])
+
+							//Set path to twig templates
+							->htmlTemplate($activateMail['html'])
+							->textTemplate($activateMail['text'])
+
+							//Set context
+							->context(['subject' => $activateMail['subject']]+$activateMail['context']);
+
+						//Try sending message
+						//XXX: mail delivery may silently fail
+						try {
+							//Send message
+							$mailer->send($message);
+						//Catch obvious transport exception
+						} catch(TransportExceptionInterface $e) {
+							//Add error message mail unreachable
+							$this->addFlash('error', $this->translator->trans('Account %mail% tried activate but unable to contact', ['%mail%' => $existing->getMail()]));
+						}
+
+						//Get route params
+						$routeParams = $request->get('_route_params');
+
+						//Remove mail, field and hash from route params
+						unset($routeParams['mail'], $routeParams['field'], $routeParams['hash']);
+
+						//Redirect on the same route with sent=1 to cleanup form
+						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$routeParams);
+					}
+
+					//Add error message mail already exists
+					$this->addFlash('warning', $this->translator->trans('Account %mail% already exists', ['%mail%' => $existing->getMail()]));
+
+					//Redirect to user view
+					return $this->redirectToRoute(
+						$this->config['route']['edit']['name'],
+						[
+							'mail' => $smail = $slugger->short($existing->getMail()),
+							'hash' => $slugger->hash($smail)
+						]+$this->config['route']['edit']['context']
+					);
+				}
 			//Without mail
 			} else {
 				//Set smail
@@ -820,7 +906,7 @@ class DefaultController extends AbstractController {
 			$smail = $mail;
 
 			//Set smail
-			$sfield = $sfield;
+			$sfield = $field;
 
 			//Reset field
 			$field = [];
