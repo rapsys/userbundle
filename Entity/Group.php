@@ -1,8 +1,23 @@
-<?php
+<?php declare(strict_types=1);
 
-// src/Rapsys/UserBundle/Entity/Group.php
+/*
+ * This file is part of the Rapsys PackBundle package.
+ *
+ * (c) Raphaël Gertz <symfony@rapsys.eu>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Rapsys\UserBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+
+use Rapsys\UserBundle\Entity\User;
+
+/**
+ * Group
+ */
 class Group {
 	/**
 	 * @var integer
@@ -25,7 +40,7 @@ class Group {
 	protected $updated;
 
 	/**
-	 * @var \Doctrine\Common\Collections\Collection
+	 * @var ArrayCollection
 	 */
 	protected $users;
 
@@ -36,7 +51,7 @@ class Group {
 	 */
 	public function __construct(string $title) {
 		$this->title = (string) $title;
-		$this->users = new \Doctrine\Common\Collections\ArrayCollection();
+		$this->users = new ArrayCollection();
 	}
 
 	/**
@@ -44,7 +59,7 @@ class Group {
 	 *
 	 * @return integer
 	 */
-	public function getId() {
+	public function getId(): int {
 		return $this->id;
 	}
 
@@ -55,7 +70,7 @@ class Group {
 	 *
 	 * @return User
 	 */
-	public function setTitle($title) {
+	public function setTitle(string $title) {
 		$this->title = $title;
 
 		return $this;
@@ -66,7 +81,7 @@ class Group {
 	 *
 	 * @return string
 	 */
-	public function getTitle() {
+	public function getTitle(): ?string {
 		return $this->title;
 	}
 
@@ -77,7 +92,7 @@ class Group {
 	 *
 	 * @return User
 	 */
-	public function setCreated($created) {
+	public function setCreated(\DateTime $created) {
 		$this->created = $created;
 
 		return $this;
@@ -88,7 +103,7 @@ class Group {
 	 *
 	 * @return \DateTime
 	 */
-	public function getCreated() {
+	public function getCreated(): \DateTime {
 		return $this->created;
 	}
 
@@ -99,7 +114,7 @@ class Group {
 	 *
 	 * @return User
 	 */
-	public function setUpdated($updated) {
+	public function setUpdated(\DateTime $updated) {
 		$this->updated = $updated;
 
 		return $this;
@@ -110,18 +125,18 @@ class Group {
 	 *
 	 * @return \DateTime
 	 */
-	public function getUpdated() {
+	public function getUpdated(): \DateTime {
 		return $this->updated;
 	}
 
 	/**
 	 * Add user
 	 *
-	 * @param \Rapsys\UserBundle\Entity\User $user
+	 * @param User $user
 	 *
 	 * @return Group
 	 */
-	public function addUser(\Rapsys\UserBundle\Entity\User $user) {
+	public function addUser(User $user) {
 		$this->users[] = $user;
 
 		return $this;
@@ -130,18 +145,18 @@ class Group {
 	/**
 	 * Remove user
 	 *
-	 * @param \Rapsys\UserBundle\Entity\User $user
+	 * @param User $user
 	 */
-	public function removeUser(\Rapsys\UserBundle\Entity\User $user) {
+	public function removeUser(User $user) {
 		$this->users->removeElement($user);
 	}
 
 	/**
 	 * Get users
 	 *
-	 * @return \Doctrine\Common\Collections\Collection
+	 * @return ArrayCollection
 	 */
-	public function getUsers() {
+	public function getUsers(): ArrayCollection {
 		return $this->users;
 	}
 
@@ -159,7 +174,7 @@ class Group {
 	 *
 	 * @return string
 	 */
-	public function getRole() {
+	public function getRole(): string {
 		return 'ROLE_'.strtoupper($this->title);
 	}
 }

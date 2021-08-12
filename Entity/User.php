@@ -1,13 +1,25 @@
-<?php
+<?php declare(strict_types=1);
 
-// src/Rapsys/UserBundle/Entity/User.php
+/*
+ * this file is part of the rapsys packbundle package.
+ *
+ * (c) raphaël gertz <symfony@rapsys.eu>
+ *
+ * for the full copyright and license information, please view the license
+ * file that was distributed with this source code.
+ */
+
 namespace Rapsys\UserBundle\Entity;
 
-use Rapsys\UserBundle\Entity\Group;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\Common\Collections\ArrayCollection;
-use Rapsys\UserBundle\Entity\Civility;
+use Symfony\Component\Security\Core\User\UserInterface;
 
+use Rapsys\UserBundle\Entity\Civility;
+use Rapsys\UserBundle\Entity\Group;
+
+/**
+ * User
+ */
 class User implements UserInterface, \Serializable {
 	/**
 	 * @var integer
@@ -60,12 +72,12 @@ class User implements UserInterface, \Serializable {
 	protected $updated;
 
 	/**
-	 * @var \Rapsys\UserBundle\Entity\Civility
+	 * @var Civility
 	 */
 	protected $civility;
 
 	/**
-	 * @var \Doctrine\Common\Collections\ArrayCollection
+	 * @var ArrayCollection
 	 */
 	protected $groups;
 
@@ -306,7 +318,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Add group
 	 *
-	 * @param \Rapsys\UserBundle\Entity\Group $group
+	 * @param Group $group
 	 *
 	 * @return User
 	 */
@@ -319,7 +331,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Remove group
 	 *
-	 * @param \Rapsys\UserBundle\Entity\Group $group
+	 * @param Group $group
 	 */
 	public function removeGroup(Group $group) {
 		$this->groups->removeElement($group);
@@ -328,7 +340,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get groups
 	 *
-	 * @return \Doctrine\Common\Collections\ArrayCollection
+	 * @return ArrayCollection
 	 */
 	public function getGroups(): ArrayCollection {
 		return $this->groups;
