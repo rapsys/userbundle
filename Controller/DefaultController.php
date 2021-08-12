@@ -399,7 +399,6 @@ class DefaultController extends AbstractController {
 					$this->addFlash('notice', $this->translator->trans('Account %mail% password updated', ['%mail%' => $mail = $data->getMail()]));
 
 					//Redirect to cleanup the form
-					//TODO: extract referer ??? or useless ???
 					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
 				}
 			}
@@ -436,7 +435,6 @@ class DefaultController extends AbstractController {
 				$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail = $data->getMail()]));
 
 				//Redirect to cleanup the form
-				//TODO: extract referer ??? or useless ???
 				return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
 			}
 		}
@@ -528,7 +526,6 @@ class DefaultController extends AbstractController {
 			$context['recover'] = $recover->createView();
 		} else {
 			//Add notice
-			//TODO: drop it if referer route is recover ?
 			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
 		}
 
