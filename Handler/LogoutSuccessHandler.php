@@ -6,14 +6,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Security\Http\Logout\LogoutSuccessHandlerInterface;
+use Symfony\Component\Security\Http\Logout\DefaultLogoutSuccessHandler;
 
-class LogoutSuccessHandler implements LogoutSuccessHandlerInterface {
+use Rapsys\UserBundle\RapsysUserBundle;
+
+/**
+ * {@inheritdoc}
+ */
+class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 	/**
-	 * {@inheritdoc}
+	 * Config array
 	 */
-	protected $container;
+	protected $config;
 
 	/**
 	 * {@inheritdoc}
@@ -23,8 +29,19 @@ class LogoutSuccessHandler implements LogoutSuccessHandlerInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function __construct(ContainerInterface $container, RouterInterface $router) {
-		$this->container = $container;
+	protected $targetUrl;
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function __construct(ContainerInterface $container, string $targetUrl = '/', RouterInterface $router) {
+		//Set config
+		$this->config = $container->getParameter(self::getAlias());
+
+		//Set target url
+		$this->targetUrl = $targetUrl;
+
+		//Set router
 		$this->router = $router;
 	}
 
@@ -36,7 +53,7 @@ class LogoutSuccessHandler implements LogoutSuccessHandlerInterface {
 		$logout = $request->get('_route');
 
 		//Extract and process referer
-		if ($referer = $request->headers->get('referer')) {
+		if (($referer = $request->headers->get('referer'))) {
 			//Create referer request instance
 			$req = Request::create($referer);
 
@@ -51,76 +68,116 @@ class LogoutSuccessHandler implements LogoutSuccessHandlerInterface {
 
 			//Try with referer path
 			try {
+				//Save old context
+				$oldContext = $this->router->getContext();
+
+				//Force clean context
+				//XXX: prevent MethodNotAllowedException on GET only routes because our context method is POST
+				//XXX: see vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php +42
+				$this->router->setContext(new RequestContext());
+
 				//Retrieve route matching path
 				$route = $this->router->match($path);
 
-				//With router differing from logout one
-				if (($name = $route['_route']) == $logout) {
-					#throw new ResourceNotFoundException('Identical referer and logout route');
-					//Unset referer to fallback to default route
-					unset($referer);
-				//With route matching logout
-				} else {
+				//Reset context
+				$this->router->setContext($oldContext);
+
+				//Clear old context
+				unset($oldContext);
+
+				//Without logout route name
+				if (($name = $route['_route']) != $logout) {
 					//Remove route and controller from route defaults
 					unset($route['_route'], $route['_controller'], $route['_canonical_route']);
 
 					//Generate url
 					$url = $this->router->generate($name, $route);
+
+					//Return generated route
+					return new RedirectResponse($url, 302);
+				//With logout route name
+				} else {
+					//Unset referer and route
+					unset($referer, $route);
 				}
 			//No route matched
 			} catch (ResourceNotFoundException $e) {
-				//Unset referer to fallback to default route
-				unset($referer);
+				//Unset referer and route
+				unset($referer, $route);
 			}
 		}
 
-		//Referer empty or unusable
-		if (empty($referer)) {
-			//Try with / path
-			try {
-				//Retrieve route matching /
-				$route = $this->router->match('/');
+		//With index route from config
+		if (!empty($name = $this->config['route']['index']['name']) && is_array($context = $this->config['route']['index']['context'])) {
+			//Without logout route name
+			if (($name = $route['_route']) != $logout) {
+				//Try index route
+				try {
+					//Generate url
+					$url = $this->router->generate($name, $context);
 
-				//Verify that it differ from current one
-				if (($name = $route['_route']) == $logout) {
-					throw new ResourceNotFoundException('Identical referer and logout route');
+					//Return generated route
+					return new RedirectResponse($url, 302);
+				//No route matched
+				} catch (ResourceNotFoundException $e) {
+					//Unset name and context
+					unset($name, $context);
 				}
+			//With logout route name
+			} else {
+				//Unset name and context
+				unset($name, $context);
+			}
+		}
 
+		//Try target url
+		try {
+			//Save old context
+			$oldContext = $this->router->getContext();
+
+			//Force clean context
+			//XXX: prevent MethodNotAllowedException on GET only routes because our context method is POST
+			//XXX: see vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php +42
+			$this->router->setContext(new RequestContext());
+
+			//Retrieve route matching target url
+			$route = $this->router->match($this->targetUrl);
+
+			//Reset context
+			$this->router->setContext($oldContext);
+
+			//Clear old context
+			unset($oldContext);
+
+			//Without logout route name
+			if (($name = $route['_route']) != $logout) {
 				//Remove route and controller from route defaults
 				unset($route['_route'], $route['_controller'], $route['_canonical_route']);
 
 				//Generate url
 				$url = $this->router->generate($name, $route);
-			//Get first route from route collection if / path was not matched
-			} catch (ResourceNotFoundException $e) {
-				//Fetch all routes
-				//XXX: this method regenerate the Routing cache making apps very slow
-				//XXX: see https://github.com/symfony/symfony-docs/issues/6710
-				//XXX: it should be fine to call it without referer and a / route
-				foreach ($this->router->getRouteCollection() as $name => $route) {
-					//Return on first public route excluding logout one
-					if (!empty($name) && $name[0] != '_' && $name != $logout) {
-						break;
-					}
-				}
 
-				//Bail out if no route found
-				if (!isset($name) || !isset($route)) {
-					throw new \RuntimeException('Unable to retrieve default route');
-				}
-
-				//Retrieve route defaults
-				$defaults = $route->getDefaults();
-
-				//Remove route and controller from route defaults
-				unset($defaults['_route'], $defaults['_controller'], $defaults['_canonical_route']);
-
-				//Generate url
-				$url = $this->router->generate($name, $defaults);
+				//Return generated route
+				return new RedirectResponse($url, 302);
+			//With logout route name
+			} else {
+				//Unset name and route
+				unset($name, $route);
 			}
+		//Get first route from route collection if / path was not matched
+		} catch (ResourceNotFoundException $e) {
+			//Unset name and route
+			unset($name, $route);
 		}
 
-		//Return redirect response
-		return new RedirectResponse($url, 302);
+		//Throw exception
+		throw new \RuntimeException('You must provide a valid logout target url or route name');
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function getAlias(): string {
+		return RapsysUserBundle::getAlias();
 	}
 }
