@@ -59,11 +59,11 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
 	 * {@inheritdoc}
 	 */
 	public function __construct(RouterInterface $router, array $options = []) {
-		//Set options
-		$this->setOptions($options);
-
 		//Set router
 		$this->router = $router;
+
+		//Set options
+		$this->setOptions($options);
 	}
 
     /**
