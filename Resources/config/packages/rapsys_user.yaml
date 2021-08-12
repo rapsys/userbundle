@@ -10,6 +10,13 @@ services:
         arguments: [ '@service_container', '@router', '@translator' ]
         autowire: true
         tags: [ 'controller.service_arguments' ]
+    #Register Authentication success handler
+    security.authentication.success_handler:
+        class: 'Rapsys\UserBundle\Handler\AuthenticationSuccessHandler'
+        arguments: [ '@router', {} ]
     #Register logout success handler
-    Rapsys\UserBundle\Handler\LogoutSuccessHandler:
-        arguments: [ '@service_container', '@router' ]
+    security.logout.success_handler:
+        class: 'Rapsys\UserBundle\Handler\LogoutSuccessHandler'
+        #XXX: second argument will be replaced there by kernel.mail.logout.target
+        #XXX: vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +360
+        arguments: [ '@service_container', '/', '@router' ]
