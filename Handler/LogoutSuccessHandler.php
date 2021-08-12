@@ -1,10 +1,20 @@
-<?php
+<?php declare(strict_types=1);
+
+/*
+ * This file is part of the Rapsys UserBundle package.
+ *
+ * (c) Raphaël Gertz <symfony@rapsys.eu>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Rapsys\UserBundle\Handler;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
@@ -51,7 +61,7 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function onLogoutSuccess(Request $request) {
+	public function onLogoutSuccess(Request $request): Response {
 		//Retrieve logout route
 		$logout = $request->get('_route');
 
