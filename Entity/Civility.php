@@ -46,8 +46,11 @@ class Civility {
 
 	/**
 	 * Constructor
+	 *
+	 * @param string $title The civility name
 	 */
-	public function __construct() {
+	public function __construct(string $title) {
+		$this->title = $title;
 		$this->users = new ArrayCollection();
 	}
 
@@ -67,7 +70,7 @@ class Civility {
 	 *
 	 * @return Civility
 	 */
-	public function setTitle(string $title) {
+	public function setTitle(string $title): Civility {
 		$this->title = $title;
 
 		return $this;
@@ -89,7 +92,7 @@ class Civility {
 	 *
 	 * @return Civility
 	 */
-	public function setCreated(\DateTime $created) {
+	public function setCreated(\DateTime $created): Civility {
 		$this->created = $created;
 
 		return $this;
@@ -111,7 +114,7 @@ class Civility {
 	 *
 	 * @return Civility
 	 */
-	public function setUpdated(\DateTime $updated) {
+	public function setUpdated(\DateTime $updated): Civility {
 		$this->updated = $updated;
 
 		return $this;

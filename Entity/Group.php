@@ -50,7 +50,7 @@ class Group {
 	 * @param string $title The group name
 	 */
 	public function __construct(string $title) {
-		$this->title = (string) $title;
+		$this->title = $title;
 		$this->users = new ArrayCollection();
 	}
 
@@ -68,9 +68,9 @@ class Group {
 	 *
 	 * @param string $title The group name
 	 *
-	 * @return User
+	 * @return Group
 	 */
-	public function setTitle(string $title) {
+	public function setTitle(string $title): Group {
 		$this->title = $title;
 
 		return $this;
@@ -90,9 +90,9 @@ class Group {
 	 *
 	 * @param \DateTime $created
 	 *
-	 * @return User
+	 * @return Group
 	 */
-	public function setCreated(\DateTime $created) {
+	public function setCreated(\DateTime $created): Group {
 		$this->created = $created;
 
 		return $this;
@@ -112,9 +112,9 @@ class Group {
 	 *
 	 * @param \DateTime $updated
 	 *
-	 * @return User
+	 * @return Group
 	 */
-	public function setUpdated(\DateTime $updated) {
+	public function setUpdated(\DateTime $updated): Group {
 		$this->updated = $updated;
 
 		return $this;

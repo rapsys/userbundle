@@ -83,8 +83,11 @@ class User implements UserInterface, \Serializable {
 
 	/**
 	 * Constructor
+	 *
+	 * @param string $mail The user mail
 	 */
-	public function __construct() {
+	public function __construct(string $mail) {
+		$this->mail = $mail;
 		$this->active = false;
 		$this->disabled = false;
 		$this->groups = new ArrayCollection();
@@ -106,7 +109,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setMail(string $mail) {
+	public function setMail(string $mail): User {
 		$this->mail = $mail;
 
 		return $this;
@@ -128,7 +131,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setPseudonym(string $pseudonym) {
+	public function setPseudonym(string $pseudonym): User {
 		$this->pseudonym = $pseudonym;
 
 		return $this;
@@ -150,7 +153,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setForename(string $forename) {
+	public function setForename(string $forename): User {
 		$this->forename = $forename;
 
 		return $this;
@@ -172,7 +175,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setSurname(string $surname) {
+	public function setSurname(string $surname): User {
 		$this->surname = $surname;
 
 		return $this;
@@ -194,7 +197,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setPassword(string $password) {
+	public function setPassword(string $password): User {
 		$this->password = $password;
 
 		return $this;
@@ -218,7 +221,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setActive(bool $active) {
+	public function setActive(bool $active): User {
 		$this->active = $active;
 
 		return $this;
@@ -240,7 +243,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setDisabled(bool $disabled) {
+	public function setDisabled(bool $disabled): User {
 		$this->disabled = $disabled;
 
 		return $this;
@@ -262,7 +265,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setCreated(\DateTime $created) {
+	public function setCreated(\DateTime $created): User {
 		$this->created = $created;
 
 		return $this;
@@ -284,7 +287,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return User
 	 */
-	public function setUpdated(\DateTime $updated) {
+	public function setUpdated(\DateTime $updated): User {
 		$this->updated = $updated;
 
 		return $this;
@@ -302,7 +305,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Set civility
 	 */
-	public function setCivility(Civility $civility) {
+	public function setCivility(Civility $civility): User {
 		$this->civility = $civility;
 
 		return $this;
