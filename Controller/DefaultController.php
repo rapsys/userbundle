@@ -323,22 +323,6 @@ class DefaultController extends AbstractController {
 		}
 
 		//Create the RegisterType form and give the proper parameters
-		$editForm = $this->createForm($this->config['register']['view']['form'], $user, [
-			//Set action to register route name and context
-			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']),
-			//Set civility class
-			'civility_class' => $this->config['class']['civility'],
-			//Set civility default
-			'civility_default' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
-			//Disable mail
-			'mail' => $this->isGranted('ROLE_ADMIN'),
-			//Disable password
-			'password' => false,
-			//Set method
-			'method' => 'POST'
-		]);
-
-		//Create the RegisterType form and give the proper parameters
 		$edit = $this->createForm($this->config['edit']['view']['edit'], $user, [
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']),
@@ -749,11 +733,28 @@ class DefaultController extends AbstractController {
 	 * @return Response The response
 	 */
 	public function register(Request $request, Registry $doctrine, UserPasswordEncoderInterface $encoder, EntityManagerInterface $manager, SluggerUtil $slugger, MailerInterface $mailer, LoggerInterface $logger, $mail, $field, $hash): Response {
-		//Init reflection
-		$reflection = new \ReflectionClass($this->config['class']['user']);
-
-		//Create new user
-		$user = $reflection->newInstance();
+		//With mail
+		if (!empty($_POST['register']['mail'])) {
+			//Log new user infos
+			$logger->emergency(
+				$this->translator->trans(
+					'register: mail=%mail% locale=%locale% confirm=%confirm%',
+					[
+						'%mail%' => $postMail = $_POST['register']['mail'],
+						'%locale%' => $request->getLocale(),
+						'%confirm%' => $this->get('router')->generate(
+							$this->config['route']['confirm']['name'],
+							//Prepend subscribe context with tag
+							[
+								'mail' => $postSmail = $slugger->short($postMail),
+								'hash' => $slugger->hash($postSmail)
+							]+$this->config['route']['confirm']['context'],
+							UrlGeneratorInterface::ABSOLUTE_URL
+						)
+					]
+				)
+			);
+		}
 
 		//With mail and field
 		if (!empty($field) && !empty($hash)) {
@@ -774,9 +775,6 @@ class DefaultController extends AbstractController {
 					//XXX: prevent slugger reverse engineering by not displaying decoded mail
 					throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
 				}
-
-				//Set mail
-				$user->setMail($mail);
 
 				//With existing registrant
 				if ($existing = $doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail)) {
@@ -912,6 +910,12 @@ class DefaultController extends AbstractController {
 			$field = [];
 		}
 
+		//Init reflection
+		$reflection = new \ReflectionClass($this->config['class']['user']);
+
+		//Create new user
+		$user = $reflection->newInstance(strval($mail));
+
 		//Create the RegisterType form and give the proper parameters
 		$form = $this->createForm($this->config['register']['view']['form'], $user, $field+[
 			//Set action to register route name and context
@@ -1013,19 +1017,6 @@ class DefaultController extends AbstractController {
 
 				//XXX: DEBUG: remove me
 				//die($registerMail['context']['confirm_url']);
-
-				//Log new user infos
-				//XXX: useless ???
-				$logger->emergency(
-					$this->translator->trans(
-						'newuser:mail=%mail%|locale=%locale%|confirm=%confirm%',
-						[
-							'%mail%' => $data->getMail(),
-							'%locale%' => $request->getLocale(),
-							'%confirm%' => $registerMail['context'][$this->config['register']['route']['confirm']]
-						]
-					)
-				);
 
 				//Set recipient_name
 				$registerMail['context']['recipient_mail'] = $data->getMail();
