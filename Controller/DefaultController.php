@@ -13,10 +13,9 @@ namespace Rapsys\UserBundle\Controller;
 
 use Doctrine\Bundle\DoctrineBundle\Registry;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,208 +27,13 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
-use Symfony\Component\Translation\TranslatorInterface;
 
 use Rapsys\PackBundle\Util\SluggerUtil;
-use Rapsys\UserBundle\RapsysUserBundle;
 
+/**
+ * {@inheritdoc}
+ */
 class DefaultController extends AbstractController {
-	//Config array
-	protected $config;
-
-	//Translator instance
-	protected $translator;
-
-	/**
-	 * Constructor
-	 *
-	 * @TODO: move all canonical and other view related stuff in an user AbstractController like in RapsysAir render feature !!!!
-	 *
-	 * @param ContainerInterface $container The containter instance
-	 * @param RouterInterface $router The router instance
-	 * @param TranslatorInterface $translator The translator instance
-	 */
-	public function __construct(ContainerInterface $container, RouterInterface $router, TranslatorInterface $translator) {
-		//Retrieve config
-		$this->config = $container->getParameter(self::getAlias());
-
-		//Set the translator
-		$this->translator = $translator;
-
-		//Get request stack
-		$stack = $container->get('request_stack');
-
-		//Get current request
-		$request = $stack->getCurrentRequest();
-
-		//Get current locale
-		$currentLocale = $request->getLocale();
-
-		//Set locale
-		$this->config['context']['locale'] = str_replace('_', '-', $currentLocale);
-
-		//Set translate array
-		$translates = [];
-
-		//Look for keys to translate
-		if (!empty($this->config['translate'])) {
-			//Iterate on keys to translate
-			foreach($this->config['translate'] as $translate) {
-				//Set tmp
-				$tmp = null;
-				//Iterate on keys
-				foreach(array_reverse(explode('.', $translate)) as $curkey) {
-					$tmp = array_combine([$curkey], [$tmp]);
-				}
-				//Append tree
-				$translates = array_replace_recursive($translates, $tmp);
-			}
-		}
-
-		//Inject every requested route in view and mail context
-		foreach($this->config as $tag => $current) {
-			//Look for entry with title subkey
-			if (!empty($current['title'])) {
-				//Translate title value
-				$this->config[$tag]['title'] = $translator->trans($current['title']);
-			}
-
-			//Look for entry with route subkey
-			if (!empty($current['route'])) {
-				//Generate url for both view and mail
-				foreach(['view', 'mail'] as $view) {
-					//Check that context key is usable
-					if (isset($current[$view]['context']) && is_array($current[$view]['context'])) {
-						//Merge with global context
-						$this->config[$tag][$view]['context'] = array_replace_recursive($this->config['context'], $this->config[$tag][$view]['context']);
-
-						//Process every routes
-						foreach($current['route'] as $route => $key) {
-							//With confirm route
-							if ($route == 'confirm') {
-								//Skip route as it requires some parameters
-								continue;
-							}
-
-							//Set value
-							$value = $router->generate(
-								$this->config['route'][$route]['name'],
-								$this->config['route'][$route]['context'],
-								//Generate absolute url for mails
-								$view=='mail'?UrlGeneratorInterface::ABSOLUTE_URL:UrlGeneratorInterface::ABSOLUTE_PATH
-							);
-
-							//Multi level key
-							if (strpos($key, '.') !== false) {
-								//Set tmp
-								$tmp = $value;
-
-								//Iterate on key
-								foreach(array_reverse(explode('.', $key)) as $curkey) {
-									$tmp = array_combine([$curkey], [$tmp]);
-								}
-
-								//Set value
-								$this->config[$tag][$view]['context'] = array_replace_recursive($this->config[$tag][$view]['context'], $tmp);
-							//Single level key
-							} else {
-								//Set value
-								$this->config[$tag][$view]['context'][$key] = $value;
-							}
-						}
-
-						//Look for successful intersections
-						if (!empty(array_intersect_key($translates, $this->config[$tag][$view]['context']))) {
-							//Iterate on keys to translate
-							foreach($this->config['translate'] as $translate) {
-								//Set keys
-								$keys = explode('.', $translate);
-
-								//Set tmp
-								$tmp = $this->config[$tag][$view]['context'];
-
-								//Iterate on keys
-								foreach($keys as $curkey) {
-									//Without child key
-									if (!isset($tmp[$curkey])) {
-										//Skip to next key
-										continue(2);
-									}
-
-									//Get child key
-									$tmp = $tmp[$curkey];
-								}
-
-								//Translate tmp value
-								$tmp = $translator->trans($tmp);
-
-								//Iterate on keys
-								foreach(array_reverse($keys) as $curkey) {
-									//Set parent key
-									$tmp = array_combine([$curkey], [$tmp]);
-								}
-
-								//Set value
-								$this->config[$tag][$view]['context'] = array_replace_recursive($this->config[$tag][$view]['context'], $tmp);
-							}
-						}
-
-						//With view context
-						if ($view == 'view') {
-							//Get context path
-							$pathInfo = $router->getContext()->getPathInfo();
-
-							//Iterate on locales excluding current one
-							foreach($this->config['locales'] as $locale) {
-								//Set titles
-								$titles = [];
-
-								//Iterate on other locales
-								foreach(array_diff($this->config['locales'], [$locale]) as $other) {
-									$titles[$other] = $translator->trans($this->config['languages'][$locale], [], null, $other);
-								}
-
-								//Retrieve route matching path
-								$route = $router->match($pathInfo);
-
-								//Get route name
-								$name = $route['_route'];
-
-								//Unset route name
-								unset($route['_route']);
-
-								//With current locale
-								if ($locale == $currentLocale) {
-									//Set locale locales context
-									$this->config[$tag][$view]['context']['canonical'] = $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
-								} else {
-									//Set locale locales context
-									$this->config[$tag][$view]['context']['alternates'][$locale] = [
-										'absolute' => $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
-										'relative' => $router->generate($name, ['_locale' => $locale]+$route),
-										'title' => implode('/', $titles),
-										'translated' => $translator->trans($this->config['languages'][$locale], [], null, $locale)
-									];
-								}
-
-								//Add shorter locale
-								if (empty($this->config[$tag][$view]['context']['alternates'][$slocale = substr($locale, 0, 2)])) {
-									//Add shorter locale
-									$this->config[$tag][$view]['context']['alternates'][$slocale] = [
-										'absolute' => $router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
-										'relative' => $router->generate($name, ['_locale' => $locale]+$route),
-										'title' => implode('/', $titles),
-										'translated' => $translator->trans($this->config['languages'][$locale], [], null, $locale)
-									];
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
 	/**
 	 * Confirm account from mail link
 	 *
@@ -332,6 +136,8 @@ class DefaultController extends AbstractController {
 			'civility_default' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
 			//Disable mail
 			'mail' => $this->isGranted('ROLE_ADMIN'),
+			//Disable slug
+			'slug' => $this->isGranted('ROLE_ADMIN'),
 			//Disable password
 			'password' => false,
 			//Set method
@@ -396,17 +202,39 @@ class DefaultController extends AbstractController {
 				//Set data
 				$data = $edit->getData();
 
+				//Set slug
+				$slug = null;
+
+				//With admin
+				if ($this->isGranted('ROLE_ADMIN')) {
+					//With slug
+					if (!empty($data->getSlug())) {
+						//Set slug
+						$slug = $slugger->slug($data->getPseudonym());
+					}
+
+					//Update slug
+					$data->setSlug($slug);
+				}
+
 				//Queue snippet save
 				$manager->persist($data);
 
-				//Flush to get the ids
-				$manager->flush();
+				//Try saving in database
+				try {
+					//Flush to get the ids
+					$manager->flush();
 
-				//Add notice
-				$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail = $data->getMail()]));
+					//Add notice
+					$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail = $data->getMail()]));
 
-				//Redirect to cleanup the form
-				return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
+					//Redirect to cleanup the form
+					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $slugger->short($mail), 'hash' => $slugger->hash($smail)]+$this->config['route']['edit']['context']);
+				//Catch double slug or mail
+				} catch (UniqueConstraintViolationException $e) {
+					//Add error message mail already exists
+					$this->addFlash('error', $this->translator->trans('Account %mail% or with slug %slug% already exists', ['%mail%' => $data->getMail(), '%slug%' => $slug]));
+				}
 			}
 		}
 
@@ -907,7 +735,10 @@ class DefaultController extends AbstractController {
 			$sfield = $field;
 
 			//Reset field
-			$field = [];
+			$field = [
+				//Without slug
+				'slug' => false
+			];
 		}
 
 		//Init reflection
@@ -1072,7 +903,7 @@ class DefaultController extends AbstractController {
 						$form->get('mail')->addError(new FormError($this->translator->trans('Account %mail% tried subscribe but unable to contact', ['%mail%' => $data->getMail()])));
 					}
 				//Catch double subscription
-				} catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
 					$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $mail]));
 				}
@@ -1086,12 +917,5 @@ class DefaultController extends AbstractController {
 			//Context
 			['form' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['register']['view']['context']
 		);
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getAlias(): string {
-		return RapsysUserBundle::getAlias();
 	}
 }
