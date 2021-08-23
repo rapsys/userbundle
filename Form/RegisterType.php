@@ -63,6 +63,11 @@ class RegisterType extends AbstractType {
 			$form->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]]]);
 		}
 
+		//Add extra slug field
+		if (!empty($options['slug'])) {
+			$form->add('slug', TextType::class, ['attr' => ['placeholder' => 'Your slug'], 'required' => false]);
+		}
+
 		//Add submit
 		$form->add('submit', SubmitType::class, ['label' => 'Send', 'attr' => ['class' => 'submit']]);
 
@@ -75,7 +80,7 @@ class RegisterType extends AbstractType {
 	 */
 	public function configureOptions(OptionsResolver $resolver): void {
 		//Set defaults
-		$resolver->setDefaults(['error_bubbling' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'civility' => true, 'pseudonym' => true, 'forename' => true, 'surname' => true, 'password' => true]);
+		$resolver->setDefaults(['error_bubbling' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'civility' => true, 'pseudonym' => true, 'forename' => true, 'surname' => true, 'password' => true, 'slug' => true]);
 
 		//Add civility class
 		$resolver->setAllowedTypes('civility_class', 'string');
@@ -101,6 +106,9 @@ class RegisterType extends AbstractType {
 
 		//Add extra password option
 		$resolver->setAllowedTypes('password', 'boolean');
+
+		//Add extra slug option
+		$resolver->setAllowedTypes('slug', 'boolean');
 	}
 
 	/**
