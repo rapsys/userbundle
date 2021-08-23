@@ -12,6 +12,7 @@
 namespace Rapsys\UserBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 use Rapsys\UserBundle\Entity\Civility;
@@ -50,6 +51,11 @@ class User implements UserInterface, \Serializable {
 	 * @var string
 	 */
 	protected $password;
+
+	/**
+	 * @var string
+	 */
+	protected $slug;
 
 	/**
 	 * @var bool
@@ -212,6 +218,28 @@ class User implements UserInterface, \Serializable {
 	 */
 	public function getPassword(): ?string {
 		return $this->password;
+	}
+
+	/**
+	 * Set slug
+	 *
+	 * @param string $slug
+	 *
+	 * @return User
+	 */
+	public function setSlug(?string $slug): User {
+		$this->slug = $slug;
+
+		return $this;
+	}
+
+	/**
+	 * Get slug
+	 *
+	 * @return string
+	 */
+	public function getSlug(): ?string {
+		return $this->slug;
 	}
 
 	/**
@@ -465,7 +493,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function preUpdate(\Doctrine\ORM\Event\PreUpdateEventArgs $eventArgs) {
+	public function preUpdate(PreUpdateEventArgs $eventArgs) {
 		//Check that we have an user instance
 		if (($user = $eventArgs->getEntity()) instanceof User) {
 			//Set updated value
