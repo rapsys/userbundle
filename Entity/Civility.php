@@ -12,6 +12,7 @@
 namespace Rapsys\UserBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 
 use Rapsys\UserBundle\Entity\User;
 
@@ -158,6 +159,17 @@ class Civility {
 	 */
 	public function getUsers(): ArrayCollection {
 		return $this->users;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function preUpdate(PreUpdateEventArgs $eventArgs) {
+		//Check that we have a civility instance
+		if (($user = $eventArgs->getEntity()) instanceof Civility) {
+			//Set updated value
+			$user->setUpdated(new \DateTime('now'));
+		}
 	}
 
 	/**

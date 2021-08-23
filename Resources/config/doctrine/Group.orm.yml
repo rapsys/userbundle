@@ -19,3 +19,5 @@ Rapsys\UserBundle\Entity\Group:
 #        users:
 #            targetEntity: User
 #            mappedBy: groups
+    lifecycleCallbacks:
+        preUpdate: ['preUpdate']

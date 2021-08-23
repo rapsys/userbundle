@@ -19,3 +19,5 @@ Rapsys\UserBundle\Entity\Civility:
 #        users:
 #            targetEntity: User
 #            mappedBy: title
+    lifecycleCallbacks:
+        preUpdate: ['preUpdate']
