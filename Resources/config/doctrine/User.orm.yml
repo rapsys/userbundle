@@ -24,6 +24,11 @@ Rapsys\UserBundle\Entity\User:
         password:
             type: string
             length: 60
+        slug:
+            type: string
+            unique: true
+            length: 32
+            nullable: true
         active:
             type: boolean
             options:
