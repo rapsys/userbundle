@@ -12,9 +12,6 @@ Rapsys\UserBundle\Entity\User:
             type: string
             unique: true
             length: 254
-        pseudonym:
-            type: string
-            length: 32
         forename:
             type: string
             length: 32
@@ -24,11 +21,6 @@ Rapsys\UserBundle\Entity\User:
         password:
             type: string
             length: 60
-        slug:
-            type: string
-            unique: true
-            length: 32
-            nullable: true
         active:
             type: boolean
             options:
