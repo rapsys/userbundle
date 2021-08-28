@@ -83,17 +83,16 @@ class User implements UserInterface, \Serializable {
 	 * @param string $mail The user mail
 	 */
 	public function __construct(string $mail) {
-		//Set defaults
+		//With mail
 		if (!empty($this->mail = $mail)) {
-			//Extract names from mail
-			$names = explode(' ', ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
-			$this->forename = $names[0];
-			$this->surname = $names[1]??$names[0];
+			$this->password = $mail;
 		} else {
-			$this->forename = '';
-			$this->surname = '';
+			$this->password = '';
 		}
-		$this->password = $mail;
+
+		//Set defaults
+		$this->forename = '';
+		$this->surname = '';
 		$this->active = false;
 		$this->disabled = false;
 		$this->created = new \DateTime('now');
@@ -122,14 +121,10 @@ class User implements UserInterface, \Serializable {
 	public function setMail(string $mail): User {
 		//With mail
 		if (!empty($this->mail = $mail)) {
-			//Without forename and surname
-			if (empty($this->forename) && empty($this->surname)) {
-				//Extract names from mail
-				$names = explode(' ', ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
-				//Set forename
-				$this->forename = $names[0];
-				//Set surname
-				$this->surname = $names[1]??$names[0];
+			//Without password
+			if (empty($this->password)) {
+				//Set mail as password
+				$this->password = $mail;
 			}
 		}
 
@@ -480,6 +475,22 @@ class User implements UserInterface, \Serializable {
 			//Set updated value
 			$user->setUpdated(new \DateTime('now'));
 		}
+	}
+
+	/**
+	 * Returns a recipient name of the user
+	 *
+	 * @return string
+	 */
+	public function getRecipientName(): string {
+		//Without forename and surname
+		if (empty($this->forename) && empty($this->surname)) {
+			//Return recipient name from mail
+			return ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $this->mail)))));
+		}
+
+		//Return recipient name from forename and surname
+		return implode(' ', [$this->forename, $this->surname]);
 	}
 
 	/**
