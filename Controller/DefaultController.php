@@ -391,7 +391,7 @@ class DefaultController extends AbstractController {
 						$recoverMail['context']['recipient_mail'] = $user->getMail();
 
 						//Set recipient_name
-						$recoverMail['context']['recipient_name'] = trim($user->getForename().' '.$user->getSurname().($user->getPseudonym()?' ('.$user->getPseudonym().')':''));
+						$recoverMail['context']['recipient_name'] = $user->getRecipientName();
 
 						//Init subject context
 						$subjectContext = $slugger->flatten(array_replace_recursive($this->config['recover']['view']['context'], $recoverMail['context']), null, '.', '%', '%');
@@ -633,7 +633,7 @@ class DefaultController extends AbstractController {
 						$activateMail['context']['recipient_mail'] = $existing->getMail();
 
 						//Set recipient name
-						$activateMail['context']['recipient_name'] = implode(' ', [$existing->getForename(), $existing->getSurname(), $existing->getPseudonym()?'('.$existing->getPseudonym().')':'']);
+						$activateMail['context']['recipient_name'] = $existing->getRecipientName();
 
 						//Init subject context
 						$subjectContext = $slugger->flatten(array_replace_recursive($this->config['register']['view']['context'], $activateMail['context']), null, '.', '%', '%');
@@ -771,13 +771,7 @@ class DefaultController extends AbstractController {
 				$registerMail =& $this->config['register']['mail'];
 
 				//Set password
-				$user->setPassword($encoder->encodePassword($user, $user->getPassword()??$data->getMail()));
-
-				//Set created
-				$user->setCreated(new \DateTime('now'));
-
-				//Set updated
-				$user->setUpdated(new \DateTime('now'));
+				$user->setPassword($encoder->encodePassword($user, $user->getPassword()));
 
 				//Persist user
 				$manager->persist($user);
@@ -817,17 +811,11 @@ class DefaultController extends AbstractController {
 					}
 				}
 
-				//XXX: DEBUG: remove me
-				//die($registerMail['context']['confirm_url']);
-
 				//Set recipient_name
 				$registerMail['context']['recipient_mail'] = $data->getMail();
 
 				//Set recipient name
-				$registerMail['context']['recipient_name'] = '';
-
-				//Set recipient name
-				$registerMail['context']['recipient_name'] = implode(' ', [$data->getForename(), $data->getSurname(), $data->getPseudonym()?'('.$data->getPseudonym().')':'']);
+				$registerMail['context']['recipient_name'] = $data->getRecipientName();
 
 				//Init subject context
 				$subjectContext = $slugger->flatten(array_replace_recursive($this->config['register']['view']['context'], $registerMail['context']), null, '.', '%', '%');
