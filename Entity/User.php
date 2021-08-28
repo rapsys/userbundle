@@ -83,13 +83,16 @@ class User implements UserInterface, \Serializable {
 	 * @param string $mail The user mail
 	 */
 	public function __construct(string $mail) {
-		//Extract names from mail
-		$names = explode(' ', ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
-
 		//Set defaults
-		$this->mail = $mail;
-		$this->forename = $names[0];
-		$this->surname = $names[1]??$names[0];
+		if (!empty($this->mail = $mail)) {
+			//Extract names from mail
+			$names = explode(' ', ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
+			$this->forename = $names[0];
+			$this->surname = $names[1]??$names[0];
+		} else {
+			$this->forename = '';
+			$this->surname = '';
+		}
 		$this->password = $mail;
 		$this->active = false;
 		$this->disabled = false;
@@ -117,7 +120,18 @@ class User implements UserInterface, \Serializable {
 	 * @return User
 	 */
 	public function setMail(string $mail): User {
-		$this->mail = $mail;
+		//With mail
+		if (!empty($this->mail = $mail)) {
+			//Without forename and surname
+			if (empty($this->forename) && empty($this->surname)) {
+				//Extract names from mail
+				$names = explode(' ', ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
+				//Set forename
+				$this->forename = $names[0];
+				//Set surname
+				$this->surname = $names[1]??$names[0];
+			}
+		}
 
 		return $this;
 	}
