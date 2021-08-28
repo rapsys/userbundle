@@ -35,11 +35,6 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * @var string
 	 */
-	protected $pseudonym;
-
-	/**
-	 * @var string
-	 */
 	protected $forename;
 
 	/**
@@ -51,11 +46,6 @@ class User implements UserInterface, \Serializable {
 	 * @var string
 	 */
 	protected $password;
-
-	/**
-	 * @var string
-	 */
-	protected $slug;
 
 	/**
 	 * @var bool
@@ -93,9 +83,20 @@ class User implements UserInterface, \Serializable {
 	 * @param string $mail The user mail
 	 */
 	public function __construct(string $mail) {
+		//Extract names from mail
+		$names = explode(' ', ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $mail))))));
+
+		//Set defaults
 		$this->mail = $mail;
+		$this->forename = $names[0];
+		$this->surname = $names[1]??$names[0];
+		$this->password = $mail;
 		$this->active = false;
 		$this->disabled = false;
+		$this->created = new \DateTime('now');
+		$this->updated = new \DateTime('now');
+
+		//Set collections
 		$this->groups = new ArrayCollection();
 	}
 
@@ -126,30 +127,8 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getMail(): ?string {
+	public function getMail(): string {
 		return $this->mail;
-	}
-
-	/**
-	 * Set pseudonym
-	 *
-	 * @param string $pseudonym
-	 *
-	 * @return User
-	 */
-	public function setPseudonym(string $pseudonym): User {
-		$this->pseudonym = $pseudonym;
-
-		return $this;
-	}
-
-	/**
-	 * Get pseudonym
-	 *
-	 * @return string
-	 */
-	public function getPseudonym(): ?string {
-		return $this->pseudonym;
 	}
 
 	/**
@@ -170,7 +149,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getForename(): ?string {
+	public function getForename(): string {
 		return $this->forename;
 	}
 
@@ -192,7 +171,7 @@ class User implements UserInterface, \Serializable {
 	 *
 	 * @return string
 	 */
-	public function getSurname(): ?string {
+	public function getSurname(): string {
 		return $this->surname;
 	}
 
@@ -218,28 +197,6 @@ class User implements UserInterface, \Serializable {
 	 */
 	public function getPassword(): ?string {
 		return $this->password;
-	}
-
-	/**
-	 * Set slug
-	 *
-	 * @param string $slug
-	 *
-	 * @return User
-	 */
-	public function setSlug(?string $slug): User {
-		$this->slug = $slug;
-
-		return $this;
-	}
-
-	/**
-	 * Get slug
-	 *
-	 * @return string
-	 */
-	public function getSlug(): ?string {
-		return $this->slug;
 	}
 
 	/**
@@ -444,10 +401,15 @@ class User implements UserInterface, \Serializable {
 	 */
 	public function eraseCredentials(): void {}
 
+	/**
+	 * {@inheritdoc}
+	 */
 	public function serialize(): string {
 		return serialize([
 			$this->id,
 			$this->mail,
+			$this->forename,
+			$this->surname,
 			$this->password,
 			$this->active,
 			$this->disabled,
@@ -456,10 +418,15 @@ class User implements UserInterface, \Serializable {
 		]);
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
 	public function unserialize($serialized) {
 		list(
 			$this->id,
 			$this->mail,
+			$this->forename,
+			$this->surname,
 			$this->password,
 			$this->active,
 			$this->disabled,
