@@ -183,11 +183,6 @@ class DefaultController extends AbstractController {
 
 			//Add reset view
 			$this->config['edit']['view']['context']['reset'] = $reset->createView();
-		//Without admin role
-		//XXX: prefer a reset on login to force user unspam action
-		} else {
-			//Add notice
-			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
 		}
 
 		//With post method
@@ -216,9 +211,14 @@ class DefaultController extends AbstractController {
 				//Catch double slug or mail
 				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$this->addFlash('error', $this->translator->trans('Account %mail% or with slug %slug% already exists', ['%mail%' => $data->getMail(), '%slug%' => $slug]));
+					$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $data->getMail()]));
 				}
 			}
+		//Without admin role
+		//XXX: prefer a reset on login to force user unspam action
+		} elseif (!$this->isGranted('ROLE_ADMIN')) {
+			//Add notice
+			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
 		}
 
 		//Render view
