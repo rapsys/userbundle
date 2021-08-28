@@ -609,18 +609,21 @@ class DefaultController extends AbstractController {
 					//With disabled existing
 					if ($existing->isDisabled()) {
 						//Render view
-						return $this->render(
+						$response = $this->render(
 							//Template
 							$this->config['register']['view']['name'],
 							//Context
-							['title' => $this->translator->trans('Access denied'), 'disabled' => 1]+$this->config['register']['view']['context'],
-							//Set 403
-							new Response('', 403)
+							['title' => $this->translator->trans('Access denied'), 'disabled' => 1]+$this->config['register']['view']['context']
 						);
+
+						//Set 403
+						$response->setStatusCode(403);
+
+						//Return response
+						return $response;
 					//With unactivated existing
 					} elseif (!$existing->isActivated()) {
 						//Set mail shortcut
-						//TODO: change for activate ???
 						$activateMail =& $this->config['register']['mail'];
 
 						//Generate each route route
