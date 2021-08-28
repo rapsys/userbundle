@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 /*
- * This file is part of the Rapsys PackBundle package.
+ * This file is part of the Rapsys UserBundle package.
  *
  * (c) Raphaël Gertz <symfony@rapsys.eu>
  *
@@ -79,6 +79,7 @@ class Configuration implements ConfigurationInterface {
 			],
 			'context' => [],
 			'edit' => [
+				'field' => [],
 				'route' => ['index' => 'index_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/register.html.twig',
@@ -110,6 +111,7 @@ class Configuration implements ConfigurationInterface {
 				]
 			],
 			'register' => [
+				'field' => [],
 				'route' => ['index' => 'index_url', 'confirm' => 'confirm_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/register.html.twig',
@@ -253,6 +255,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('edit')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('field')
+								->treatNullLike([])
+								->defaultValue($defaults['edit']['field'])
+								->variablePrototype()->end()
+							->end()
 							->arrayNode('route')
 								->treatNullLike([])
 								->defaultValue($defaults['edit']['route'])
@@ -333,6 +340,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('register')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('field')
+								->treatNullLike([])
+								->defaultValue($defaults['register']['field'])
+								->variablePrototype()->end()
+							->end()
 							->arrayNode('route')
 								->treatNullLike([])
 								->defaultValue($defaults['register']['route'])
