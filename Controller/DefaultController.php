@@ -136,13 +136,11 @@ class DefaultController extends AbstractController {
 			'civility_default' => $doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
 			//Disable mail
 			'mail' => $this->isGranted('ROLE_ADMIN'),
-			//Disable slug
-			'slug' => $this->isGranted('ROLE_ADMIN'),
 			//Disable password
 			'password' => false,
 			//Set method
 			'method' => 'POST'
-		]);
+		]+$this->config['edit']['field']);
 
 		//With admin role
 		if ($this->isGranted('ROLE_ADMIN')) {
@@ -201,21 +199,6 @@ class DefaultController extends AbstractController {
 			if ($edit->isSubmitted() && $edit->isValid()) {
 				//Set data
 				$data = $edit->getData();
-
-				//Set slug
-				$slug = null;
-
-				//With admin
-				if ($this->isGranted('ROLE_ADMIN')) {
-					//With slug
-					if (!empty($data->getSlug())) {
-						//Set slug
-						$slug = $slugger->slug($data->getPseudonym());
-					}
-
-					//Update slug
-					$data->setSlug($slug);
-				}
 
 				//Queue snippet save
 				$manager->persist($data);
@@ -738,10 +721,7 @@ class DefaultController extends AbstractController {
 			$sfield = $field;
 
 			//Reset field
-			$field = [
-				//Without slug
-				'slug' => false
-			];
+			$field = [];
 		}
 
 		//Init reflection
@@ -762,7 +742,7 @@ class DefaultController extends AbstractController {
 			'mail' => true,
 			//Set method
 			'method' => 'POST'
-		]);
+		]+$this->config['register']['field']);
 
 		if ($request->isMethod('POST')) {
 			//Refill the fields in case the form is not valid.
@@ -789,18 +769,6 @@ class DefaultController extends AbstractController {
 
 				//Set mail shortcut
 				$registerMail =& $this->config['register']['mail'];
-
-				//Extract names and pseudonym from mail
-				$names = explode(' ', $pseudonym = ucwords(trim(preg_replace('/[^a-zA-Z]+/', ' ', current(explode('@', $data->getMail()))))));
-
-				//Set pseudonym
-				$user->setPseudonym($user->getPseudonym()??$pseudonym);
-
-				//Set forename
-				$user->setForename($user->getForename()??$names[0]);
-
-				//Set surname
-				$user->setSurname($user->getSurname()??$names[1]??$names[0]);
 
 				//Set password
 				$user->setPassword($encoder->encodePassword($user, $user->getPassword()??$data->getMail()));
