@@ -39,13 +39,13 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	 * Config array
 	 */
 	protected $config;
-    protected $options;
-    protected $defaultOptions = [
-        'failure_path' => null,
-        'failure_forward' => false,
-        'login_path' => '/login',
-        'failure_path_parameter' => '_failure_path',
-    ];
+	protected $options;
+	protected $defaultOptions = [
+		'failure_path' => null,
+		'failure_forward' => false,
+		'login_path' => '/login',
+		'failure_path_parameter' => '_failure_path',
+	];
 
 	/**
 	 * Router instance
@@ -58,9 +58,12 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	protected $slugger;
 
 	/**
+	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
+	 * @see vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +360
+	 *
 	 * {@inheritdoc}
 	 */
-    public function __construct(HttpKernelInterface $httpKernel, HttpUtils $httpUtils, array $options = [], LoggerInterface $logger, ContainerInterface $container, RouterInterface $router, SluggerUtil $slugger) {
+	public function __construct(HttpKernelInterface $httpKernel, HttpUtils $httpUtils, array $options, LoggerInterface $logger, ContainerInterface $container, RouterInterface $router, SluggerUtil $slugger) {
 		//Set config
 		$this->config = $container->getParameter(self::getAlias());
 
@@ -74,7 +77,7 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 		parent::__construct($httpKernel, $httpUtils, $options, $logger);
 	}
 
-    /**
+	/**
 	 * This is called when an interactive authentication attempt fails
 	 *
 	 * User may retrieve mail + field + hash for each unactivated/locked accounts
