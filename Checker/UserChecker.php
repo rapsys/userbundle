@@ -11,7 +11,7 @@
 
 namespace Rapsys\UserBundle\Checker;
 
-use Symfony\Component\Security\Core\User\UserChecker as BaseUserChecker;
+use Symfony\Component\Security\Core\User\InMemoryUserChecker;
 use Symfony\Component\Security\Core\Exception\DisabledException;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -21,7 +21,7 @@ use Rapsys\UserBundle\Exception\UnactivatedException;
 /**
  * {@inheritdoc}
  */
-class UserChecker extends BaseUserChecker {
+class UserChecker extends InMemoryUserChecker {
 	/**
 	 * {@inheritdoc}
 	 */
