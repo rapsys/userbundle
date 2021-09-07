@@ -47,7 +47,7 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 	 *
 	 * {@inheritdoc}
 	 */
-	public function __construct(ContainerInterface $container, string $targetUrl = '/', RouterInterface $router) {
+	public function __construct(ContainerInterface $container, string $targetUrl, RouterInterface $router) {
 		//Set config
 		$this->config = $container->getParameter(self::getAlias());
 
@@ -123,7 +123,7 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 		//With index route from config
 		if (!empty($name = $this->config['route']['index']['name']) && is_array($context = $this->config['route']['index']['context'])) {
 			//Without logout route name
-			if (($name = $route['_route']) != $logout) {
+			if ($name != $logout) {
 				//Try index route
 				try {
 					//Generate url
