@@ -9,47 +9,45 @@
  * file that was distributed with this source code.
  */
 
-namespace Rapsys\UserBundle\Handler;
+namespace Rapsys\UserBundle\Listener;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Exception\InvalidParameterException;
+use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Security\Http\Logout\DefaultLogoutSuccessHandler;
+use Symfony\Component\Security\Http\Event\LogoutEvent;
 
 use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * {@inheritdoc}
  */
-class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
+class LogoutListener implements EventSubscriberInterface {
 	/**
 	 * Config array
 	 */
 	protected $config;
 
 	/**
-	 * {@inheritdoc}
+	 * Target url
 	 */
-	protected $router;
+	private $targetUrl;
 
 	/**
 	 * {@inheritdoc}
-	 */
-	protected $targetUrl;
-
-	/**
-	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
-	 * @see vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +360
 	 *
-	 * {@inheritdoc}
+	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
+	 * @see vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +445
 	 */
 	public function __construct(ContainerInterface $container, string $targetUrl, RouterInterface $router) {
 		//Set config
-		$this->config = $container->getParameter(self::getAlias());
+		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
 
 		//Set target url
 		$this->targetUrl = $targetUrl;
@@ -61,9 +59,12 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function onLogoutSuccess(Request $request): Response {
+	public function onLogout(LogoutEvent $event): void {
+		//Get request
+		$request = $event->getRequest();
+
 		//Retrieve logout route
-		$logout = $request->get('_route');
+		$logout = $request->attributes->get('_route');
 
 		//Extract and process referer
 		if (($referer = $request->headers->get('referer'))) {
@@ -106,8 +107,11 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 					//Generate url
 					$url = $this->router->generate($name, $route);
 
-					//Return generated route
-					return new RedirectResponse($url, 302);
+					//Set event response
+					$event->setResponse(new RedirectResponse($url, 302));
+
+					//Return
+					return;
 				//With logout route name
 				} else {
 					//Unset referer and route
@@ -129,8 +133,11 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 					//Generate url
 					$url = $this->router->generate($name, $context);
 
-					//Return generated route
-					return new RedirectResponse($url, 302);
+					//Set event response
+					$event->setResponse(new RedirectResponse($url, 302));
+
+					//Return
+					return;
 				//No route matched
 				} catch (ResourceNotFoundException $e) {
 					//Unset name and context
@@ -153,44 +160,62 @@ class LogoutSuccessHandler extends DefaultLogoutSuccessHandler {
 			//XXX: see vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php +42
 			$this->router->setContext(new RequestContext());
 
-			//Retrieve route matching target url
-			$route = $this->router->match($this->targetUrl);
+			//With logout target path
+			if ($this->targetUrl[0] == '/') {
+				//Retrieve route matching target url
+				$route = $this->router->match($this->targetUrl);
 
-			//Reset context
-			$this->router->setContext($oldContext);
+				//Reset context
+				$this->router->setContext($oldContext);
 
-			//Clear old context
-			unset($oldContext);
+				//Clear old context
+				unset($oldContext);
 
-			//Without logout route name
-			if (($name = $route['_route']) != $logout) {
-				//Remove route and controller from route defaults
-				unset($route['_route'], $route['_controller'], $route['_canonical_route']);
+				//Without logout route name
+				if (($name = $route['_route']) != $logout) {
+					//Remove route and controller from route defaults
+					unset($route['_route'], $route['_controller'], $route['_canonical_route']);
 
-				//Generate url
-				$url = $this->router->generate($name, $route);
+					//Generate url
+					$url = $this->router->generate($name, $route);
 
-				//Return generated route
-				return new RedirectResponse($url, 302);
-			//With logout route name
+					//Set event response
+					$event->setResponse(new RedirectResponse($url, 302));
+
+					//Return
+					return;
+				//With logout route name
+				} else {
+					//Unset name and route
+					unset($name, $route);
+				}
+			//With route name
 			} else {
-				//Unset name and route
-				unset($name, $route);
+				//Retrieve route matching path
+				$url = $this->router->generate($this->targetUrl);
+
+				//Set event response
+				$event->setResponse(new RedirectResponse($url, 302));
+
+				//Return
+				return;
 			}
 		//Get first route from route collection if / path was not matched
-		} catch (ResourceNotFoundException $e) {
+		} catch (ResourceNotFoundException|RouteNotFoundException|MissingMandatoryParametersException|InvalidParameterException $e) {
 			//Unset name and route
 			unset($name, $route);
 		}
 
-		//Throw exception
-		throw new \RuntimeException('You must provide a valid logout target url or route name');
+		//Set event response
+		$event->setResponse(new RedirectResponse('/', 302));
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getAlias(): string {
-		return RapsysUserBundle::getAlias();
+	public static function getSubscribedEvents(): array {
+		return [
+			LogoutEvent::class => ['onLogout', 64],
+		];
 	}
 }
