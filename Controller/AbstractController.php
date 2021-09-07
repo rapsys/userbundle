@@ -11,15 +11,21 @@
 
 namespace Rapsys\UserBundle\Controller;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController as BaseAbstractController;
 use Symfony\Bundle\FrameworkBundle\Controller\ControllerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Translation\TranslatorInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Contracts\Service\ServiceSubscriberInterface;
+
+use Rapsys\PackBundle\Util\SluggerUtil;
 
 use Rapsys\UserBundle\RapsysUserBundle;
 
@@ -29,11 +35,6 @@ use Rapsys\UserBundle\RapsysUserBundle;
  * {@inheritdoc}
  */
 abstract class AbstractController extends BaseAbstractController implements ServiceSubscriberInterface {
-	use ControllerTrait {
-		//Rename render as baseRender
-		render as protected baseRender;
-	}
-
 	///Config array
 	protected $config;
 
@@ -43,8 +44,26 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	///Context array
 	protected $context;
 
+	///ManagerRegistry
+	protected $doctrine;
+
+	///UserPasswordHasherInterface
+	protected $hasher;
+
+	///LoggerInterface
+	protected $logger;
+
+	///MailerInterface
+	protected $mailer;
+
+	///EntityManagerInterface
+	protected $manager;
+
 	///Router instance
 	protected $router;
+
+	///Slugger util
+	protected $slugger;
 
 	///Translator instance
 	protected $translator;
@@ -53,29 +72,49 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	protected $locale;
 
 	/**
-	 * Common constructor
-	 *
-	 * Stores container, router and translator interfaces
-	 * Stores config
-	 * Prepares context tree
+	 * Abstract constructor
 	 *
 	 * @param ContainerInterface $container The container instance
+	 * @param ManagerRegistry $doctrine The doctrine instance
+	 * @param UserPasswordHasherInterface $hasher The password hasher instance
+	 * @param LoggerInterface $logger The logger instance
+	 * @param MailerInterface $mailer The mailer instance
+	 * @param EntityManagerInterface $manager The manager instance
+	 * @param RouterInterface $router The router instance
+	 * @param SluggerUtil $slugger The slugger instance
+	 * @param RequestStack $stack The stack instance
+	 * @param TranslatorInterface $translator The translator instance
 	 */
-	public function __construct(ContainerInterface $container) {
+	public function __construct(ContainerInterface $container, ManagerRegistry $doctrine, UserPasswordHasherInterface $hasher, LoggerInterface $logger, MailerInterface $mailer, EntityManagerInterface $manager, RouterInterface $router, SluggerUtil $slugger, RequestStack $stack, TranslatorInterface $translator) {
 		//Retrieve config
 		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
 
-		//Set the container
+		//Set container
 		$this->container = $container;
 
-		//Set the router
-		$this->router = $container->get('router');
+		//Set doctrine
+		$this->doctrine = $doctrine;
 
-		//Set the translator
-		$this->translator = $container->get('translator');
+		//Set hasher
+		$this->hasher = $hasher;
 
-		//Get request stack
-		$stack = $this->container->get('request_stack');
+		//Set logger
+		$this->logger = $logger;
+
+		//Set mailer
+		$this->mailer = $mailer;
+
+		//Set manager
+		$this->manager = $manager;
+
+		//Set router
+		$this->router = $router;
+
+		//Set slugger
+		$this->slugger = $slugger;
+
+		//Set translator
+		$this->translator = $translator;
 
 		//Get current request
 		$request = $stack->getCurrentRequest();
@@ -256,9 +295,15 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	public static function getSubscribedServices(): array {
 		//Return subscribed services
 		return [
+			'service_container' => ContainerInterface::class,
+			'doctrine' => ManagerRegistry::class,
+			'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
 			'logger' => LoggerInterface::class,
+			'mailer.mailer' => MailerInterface::class,
+			'rapsys_pack.slugger_util' => SluggerUtil::class,
 			'request_stack' => RequestStack::class,
 			'router' => RouterInterface::class,
+			'security.user_password_hasher' => UserPasswordHasherInterface::class,
 			'translator' => TranslatorInterface::class
 		];
 	}
