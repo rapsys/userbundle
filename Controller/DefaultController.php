@@ -148,7 +148,7 @@ class DefaultController extends AbstractController {
 					$data = $reset->getData();
 
 					//Set password
-					$data->setPassword($this->hasher->encodePassword($data, $data->getPassword()));
+					$data->setPassword($this->hasher->hashPassword($data, $data->getPassword()));
 
 					//Queue snippet save
 					$this->manager->persist($data);
@@ -472,14 +472,14 @@ class DefaultController extends AbstractController {
 				//Set data
 				$data = $form->getData();
 
-				//Set encoded password
-				$encoded = $this->hasher->encodePassword($user, $user->getPassword());
+				//Set hashed password
+				$hashed = $this->hasher->hashPassword($user, $user->getPassword());
 
 				//Update pass
-				$pass = $this->slugger->hash($encoded);
+				$pass = $this->slugger->hash($hashed);
 
 				//Set user password
-				$user->setPassword($encoded);
+				$user->setPassword($hashed);
 
 				//Persist user
 				$this->manager->persist($user);
@@ -741,7 +741,7 @@ class DefaultController extends AbstractController {
 				$registerMail =& $this->config['register']['mail'];
 
 				//Set password
-				$user->setPassword($this->hasher->encodePassword($user, $user->getPassword()));
+				$user->setPassword($this->hasher->hashPassword($user, $user->getPassword()));
 
 				//Persist user
 				$this->manager->persist($user);
