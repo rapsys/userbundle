@@ -401,7 +401,7 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getUsername(): string {
+	public function getUserIdentifier(): string {
 		return $this->mail;
 	}
 
