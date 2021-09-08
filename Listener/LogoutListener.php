@@ -43,7 +43,7 @@ class LogoutListener implements EventSubscriberInterface {
 	 * {@inheritdoc}
 	 *
 	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
-	 * @see vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +445
+	 * @see vendor/symfony/security-bundle/Resources/config/security_listeners.php +79
 	 */
 	public function __construct(ContainerInterface $container, string $targetUrl, RouterInterface $router) {
 		//Set config
