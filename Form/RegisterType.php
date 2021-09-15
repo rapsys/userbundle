@@ -35,27 +35,27 @@ class RegisterType extends AbstractType {
 
 		//Add extra mail field
 		if (!empty($options['mail'])) {
-			$form->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])]]);
-		}
-
-		//Add extra civility field
-		if (!empty($options['civility'])) {
-			$form->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'constraints' => [new NotBlank(['message' => 'Please provide your civility'])], 'choice_translation_domain' => true, 'empty_data' => $options['civility_default']]);
-		}
-
-		//Add extra forename field
-		if (!empty($options['forename'])) {
-			$form->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename'], 'constraints' => [new NotBlank(['message' => 'Please provide your forename'])]]);
-		}
-
-		//Add extra surname field
-		if (!empty($options['surname'])) {
-			$form->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname'], 'constraints' => [new NotBlank(['message' => 'Please provide your surname'])]]);
+			$form->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])], 'required' => true]);
 		}
 
 		//Add extra password field
 		if (!empty($options['password'])) {
-			$form->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]]]);
+			$form->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]], 'required' => true]);
+		}
+
+		//Add extra civility field
+		if (!empty($options['civility'])) {
+			$form->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'choice_translation_domain' => true, 'empty_data' => $options['civility_default'], 'required' => true]);
+		}
+
+		//Add extra forename field
+		if (!empty($options['forename'])) {
+			$form->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename']]);
+		}
+
+		//Add extra surname field
+		if (!empty($options['surname'])) {
+			$form->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname']]);
 		}
 
 		//Add submit
