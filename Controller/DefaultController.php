@@ -30,11 +30,11 @@ class DefaultController extends AbstractController {
 	 * Confirm account from mail link
 	 *
 	 * @param Request $request The request
-	 * @param string $mail The shorted mail address
 	 * @param string $hash The hashed password
+	 * @param string $mail The shorted mail address
 	 * @return Response The response
 	 */
-	public function confirm(Request $request, $mail, $hash): Response {
+	public function confirm(Request $request, string $hash, string $mail): Response {
 		//With invalid hash
 		if ($hash != $this->slugger->hash($mail)) {
 			//Throw bad request
@@ -81,11 +81,11 @@ class DefaultController extends AbstractController {
 	 * Edit account by shorted mail
 	 *
 	 * @param Request $request The request
-	 * @param string $mail The shorted mail address
 	 * @param string $hash The hashed password
+	 * @param string $mail The shorted mail address
 	 * @return Response The response
 	 */
-	public function edit(Request $request, $mail, $hash): Response {
+	public function edit(Request $request, string $hash, string $mail): Response {
 		//With invalid hash
 		if ($hash != $this->slugger->hash($mail)) {
 			//Throw bad request
@@ -218,11 +218,11 @@ class DefaultController extends AbstractController {
 	 *
 	 * @param Request $request The request
 	 * @param AuthenticationUtils $authenticationUtils The authentication utils
-	 * @param string $mail The shorted mail address
-	 * @param string $hash The hashed password
+	 * @param ?string $hash The hashed password
+	 * @param ?string $mail The shorted mail address
 	 * @return Response The response
 	 */
-	public function login(Request $request, AuthenticationUtils $authenticationUtils, $mail, $hash): Response {
+	public function login(Request $request, AuthenticationUtils $authenticationUtils, ?string $hash, ?string $mail): Response {
 		//Create the LoginType form and give the proper parameters
 		$login = $this->createForm($this->config['login']['view']['form'], null, [
 			//Set action to login route name and context
@@ -305,12 +305,12 @@ class DefaultController extends AbstractController {
 	 * Recover account
 	 *
 	 * @param Request $request The request
-	 * @param string $mail The shorted mail address
-	 * @param string $pass The shorted password
-	 * @param string $hash The hashed password
+	 * @param ?string $hash The hashed password
+	 * @param ?string $pass The shorted password
+	 * @param ?string $mail The shorted mail address
 	 * @return Response The response
 	 */
-	public function recover(Request $request, $mail, $pass, $hash): Response {
+	public function recover(Request $request, ?string $hash, ?string $pass, ?string $mail): Response {
 		//Without mail, pass and hash
 		if (empty($mail) && empty($pass) && empty($hash)) {
 			//Create the LoginType form and give the proper parameters
@@ -323,11 +323,13 @@ class DefaultController extends AbstractController {
 				'method' => 'POST'
 			]);
 
+			//With post method
 			if ($request->isMethod('POST')) {
 				//Refill the fields in case the form is not valid.
 				$form->handleRequest($request);
 
-				if ($form->isValid()) {
+				//With form submitted and valid
+				if ($form->isSubmitted() && $form->isValid()) {
 					//Set data
 					$data = $form->getData();
 
@@ -464,11 +466,13 @@ class DefaultController extends AbstractController {
 			'method' => 'POST'
 		]);
 
+		//With post method
 		if ($request->isMethod('POST')) {
 			//Refill the fields in case the form is not valid.
 			$form->handleRequest($request);
 
-			if ($form->isValid()) {
+			//With form submitted and valid
+			if ($form->isSubmitted() && $form->isValid()) {
 				//Set data
 				$data = $form->getData();
 
@@ -508,12 +512,12 @@ class DefaultController extends AbstractController {
 	 * Register an account
 	 *
 	 * @param Request $request The request
-	 * @param string $mail The shorted mail address
-	 * @param string $field The serialized then shorted form field array
-	 * @param string $hash The hashed serialized field array
+	 * @param ?string $hash The hashed serialized field array
+	 * @param ?string $field The serialized then shorted form field array
+	 * @param ?string $mail The shorted mail address
 	 * @return Response The response
 	 */
-	public function register(Request $request, $mail, $field, $hash): Response {
+	public function register(Request $request, ?string $hash, ?string $field, ?string $mail): Response {
 		//With mail
 		if (!empty($_POST['register']['mail'])) {
 			//Log new user infos
@@ -714,11 +718,13 @@ class DefaultController extends AbstractController {
 			'method' => 'POST'
 		]+$this->config['register']['field']);
 
+		//With post method
 		if ($request->isMethod('POST')) {
 			//Refill the fields in case the form is not valid.
 			$form->handleRequest($request);
 
-			if ($form->isValid()) {
+			//With form submitted and valid
+			if ($form->isSubmitted() && $form->isValid()) {
 				//Set data
 				$data = $form->getData();
 
