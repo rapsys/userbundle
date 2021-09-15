@@ -14,6 +14,7 @@ namespace Rapsys\UserBundle\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 use Rapsys\UserBundle\Entity\Civility;
 use Rapsys\UserBundle\Entity\Group;
@@ -21,7 +22,7 @@ use Rapsys\UserBundle\Entity\Group;
 /**
  * User
  */
-class User implements UserInterface, \Serializable {
+class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serializable {
 	/**
 	 * @var integer
 	 */
@@ -91,8 +92,8 @@ class User implements UserInterface, \Serializable {
 		}
 
 		//Set defaults
-		$this->forename = '';
-		$this->surname = '';
+		$this->forename = null;
+		$this->surname = null;
 		$this->active = false;
 		$this->disabled = false;
 		$this->created = new \DateTime('now');
@@ -143,11 +144,11 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Set forename
 	 *
-	 * @param string $forename
+	 * @param ?string $forename
 	 *
 	 * @return User
 	 */
-	public function setForename(string $forename): User {
+	public function setForename(?string $forename): User {
 		$this->forename = $forename;
 
 		return $this;
@@ -156,20 +157,20 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get forename
 	 *
-	 * @return string
+	 * @return ?string
 	 */
-	public function getForename(): string {
+	public function getForename(): ?string {
 		return $this->forename;
 	}
 
 	/**
 	 * Set surname
 	 *
-	 * @param string $surname
+	 * @param ?string $surname
 	 *
 	 * @return User
 	 */
-	public function setSurname(string $surname): User {
+	public function setSurname(?string $surname): User {
 		$this->surname = $surname;
 
 		return $this;
@@ -178,9 +179,9 @@ class User implements UserInterface, \Serializable {
 	/**
 	 * Get surname
 	 *
-	 * @return string
+	 * @return ?string
 	 */
-	public function getSurname(): string {
+	public function getSurname(): ?string {
 		return $this->surname;
 	}
 
