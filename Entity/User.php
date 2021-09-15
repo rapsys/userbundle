@@ -81,13 +81,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 	/**
 	 * Constructor
 	 *
-	 * @param string $mail The user mail
+	 * @param ?string $mail The user mail
 	 */
-	public function __construct(string $mail) {
+	public function __construct(?string $mail) {
 		//With mail
-		if (!empty($this->mail = $mail)) {
+		if ($mail !== null && !empty($mail)) {
+			$this->mail = $mail;
 			$this->password = $mail;
+		//Without mail
 		} else {
+			$this->mail = '';
 			$this->password = '';
 		}
 
@@ -115,18 +118,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 	/**
 	 * Set mail
 	 *
-	 * @param string $mail
-	 *
+	 * @param ?string $mail
 	 * @return User
 	 */
-	public function setMail(string $mail): User {
+	public function setMail(?string $mail): User {
 		//With mail
-		if (!empty($this->mail = $mail)) {
+		if ($mail !== null && !empty($mail)) {
+			//Set mail
+			$this->mail = $mail;
+
 			//Without password
 			if (empty($this->password)) {
 				//Set mail as password
 				$this->password = $mail;
 			}
+		//Without mail
+		} else {
+			$this->mail = '';
 		}
 
 		return $this;
@@ -192,8 +200,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 	 *
 	 * @return User
 	 */
-	public function setPassword(string $password): User {
-		$this->password = $password;
+	public function setPassword(?string $password): User {
+		//With password
+		if ($password !== null && !empty($password)) {
+			$this->password = $password;
+		//Without password
+		} else {
+			$this->password = '';
+		}
 
 		return $this;
 	}
@@ -205,7 +219,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 	 *
 	 * @return string
 	 */
-	public function getPassword(): ?string {
+	public function getPassword(): string {
 		return $this->password;
 	}
 
