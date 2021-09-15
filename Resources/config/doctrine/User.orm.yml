@@ -15,9 +15,11 @@ Rapsys\UserBundle\Entity\User:
         forename:
             type: string
             length: 32
+            nullable: true
         surname:
             type: string
             length: 32
+            nullable: true
         password:
             type: string
             length: 60
