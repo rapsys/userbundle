@@ -22,7 +22,7 @@ use Rapsys\UserBundle\Entity\Group;
 /**
  * User
  */
-class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serializable {
+class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
 	 * @var integer
 	 */
@@ -435,8 +435,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 	/**
 	 * {@inheritdoc}
 	 */
-	public function serialize(): string {
-		return serialize([
+	public function __serialize(): array {
+		return [
 			$this->id,
 			$this->mail,
 			$this->forename,
@@ -446,13 +446,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 			$this->disabled,
 			$this->created,
 			$this->updated
-		]);
+		];
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function unserialize($serialized) {
+	public function __unserialize(array $data): void {
 		list(
 			$this->id,
 			$this->mail,
@@ -463,7 +463,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, \Serial
 			$this->disabled,
 			$this->created,
 			$this->updated
-		) = unserialize($serialized);
+		) = $data;
 	}
 
 	/**
