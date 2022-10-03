@@ -1,3 +1,15 @@
+Contribute
+==========
+
+You may buy me a Beer, a Tea or help with Server fees with a paypal donation to
+the address <paypal@rapsys.eu>.
+
+Don't forget to show your love for this project, feel free to report bugs to
+the author, issues which are security relevant should be disclosed privately
+first.
+
+Patches are welcomed and grant credit when requested.
+
 Installation
 ============
 
@@ -8,36 +20,36 @@ Add bundle custom repository to your project's `composer.json` file:
 
 ```json
 {
-    ...,
-    "repositories": [
-        {
-            "type": "package",
-            "package": {
-                "name": "rapsys/userbundle",
-                "version": "dev-master",
-                "source": {
-                    "type": "git",
-                    "url": "https://git.rapsys.eu/userbundle",
-                    "reference": "master"
-                },
-                "autoload": {
-                    "psr-4": {
-                        "Rapsys\\UserBundle\\": ""
-                    }
-                },
-                "require": {
-                    "doctrine/doctrine-bundle": "^1.12",
-                    "rapsys/packbundle": "dev-master",
-                    "symfony/flex": "^1.5",
-                    "symfony/form": "^4.4",
-                    "symfony/framework-bundle": "^4.4",
-                    "symfony/security-bundle": "^4.4",
-                    "symfony/validator": "^4.4"
-                }
-            }
-        }
-    ],
-    ...
+	...,
+	"repositories": [
+		{
+			"type": "package",
+			"package": {
+				"name": "rapsys/userbundle",
+				"version": "dev-master",
+				"source": {
+					"type": "git",
+					"url": "https://git.rapsys.eu/userbundle",
+					"reference": "master"
+				},
+				"autoload": {
+					"psr-4": {
+						"Rapsys\\UserBundle\\": ""
+					}
+				},
+				"require": {
+					"doctrine/doctrine-bundle": "^1.0|^2.0",
+					"rapsys/packbundle": "dev-master",
+					"symfony/flex": "^1.0",
+					"symfony/form": "^4.0|^5.0",
+					"symfony/framework-bundle": "^4.0|^5.0",
+					"symfony/security-bundle": "^4.0|^5.0",
+					"symfony/validator": "^4.0|^5.0"
+				}
+			}
+		}
+	],
+	...
 }
 ```
 
@@ -75,17 +87,17 @@ in the `app/AppKernel.php` file of your project:
 // ...
 class AppKernel extends Kernel
 {
-    public function registerBundles()
-    {
-        $bundles = array(
-            // ...
-            new Rapsys\UserBundle\RapsysUserBundle(),
-        );
+	public function registerBundles()
+	{
+		$bundles = array(
+			// ...
+			new Rapsys\UserBundle\RapsysUserBundle(),
+		);
 
-        // ...
-    }
+		// ...
+	}
 
-    // ...
+	// ...
 }
 ```
 
