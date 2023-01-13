@@ -83,7 +83,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 *
 	 * @param ?string $mail The user mail
 	 */
-	public function __construct(?string $mail) {
+	public function __construct(?string $mail = null) {
 		//With mail
 		if ($mail !== null && !empty($mail)) {
 			$this->mail = $mail;
