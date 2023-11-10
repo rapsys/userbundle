@@ -69,7 +69,6 @@ class Configuration implements ConfigurationInterface {
 				]
 			],
 			'translate' => [],
-			'locales' => '%kernel.translator.fallbacks%',
 			'languages' => [
 				'en_gb' => 'English'
 			],
@@ -228,8 +227,6 @@ class Configuration implements ConfigurationInterface {
 						->defaultValue($defaults['translate'])
 						->scalarPrototype()->end()
 					->end()
-					#TODO: see if we can't prevent key normalisation with ->normalizeKeys(false)
-					->scalarNode('locales')->cannotBeEmpty()->defaultValue($defaults['locales'])->end()
 					#TODO: see if we can't prevent key normalisation with ->normalizeKeys(false)
 					->arrayNode('languages')
 						->treatNullLike([])
