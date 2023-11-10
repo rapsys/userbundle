@@ -16,7 +16,7 @@ services:
     #Register Authentication failure handler
     security.authentication.failure_handler:
         class: 'Rapsys\UserBundle\Handler\AuthenticationFailureHandler'
-        arguments: [ '@http_kernel', '@security.http_utils', {}, '@logger', '@service_container', '@router', '@rapsys_pack.slugger_util']
+        arguments: [ '@http_kernel', '@security.http_utils', {}, '@logger', '@service_container', '@router', '@rapsys_pack.slugger_util' ]
     #Register default logout listener
     security.logout.listener.default:
         class: 'Rapsys\UserBundle\Listener\LogoutListener'
