@@ -38,9 +38,9 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	/**
 	 * Config array
 	 */
-	protected $config;
-	protected $options;
-	protected $defaultOptions = [
+	protected array $config;
+	protected array $options;
+	protected array $defaultOptions = [
 		'failure_path' => null,
 		'failure_forward' => false,
 		'login_path' => '/login',
@@ -50,12 +50,12 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	/**
 	 * Router instance
 	 */
-	protected $router;
+	protected RouterInterface $router;
 
 	/**
 	 * Slugger instance
 	 */
-	protected $slugger;
+	protected SluggerUtil $slugger;
 
 	/**
 	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
