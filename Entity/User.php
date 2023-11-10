@@ -11,6 +11,7 @@
 
 namespace Rapsys\UserBundle\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -24,81 +25,80 @@ use Rapsys\UserBundle\Entity\Group;
  */
 class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
-	 * @var integer
+	 * @var ?integer
 	 */
-	protected $id;
+	protected ?int $id;
 
 	/**
 	 * @var string
 	 */
-	protected $mail;
+	protected string $mail;
 
 	/**
 	 * @var string
 	 */
-	protected $forename;
+	protected string $password;
 
 	/**
-	 * @var string
+	 * @var ?string
 	 */
-	protected $surname;
+	protected ?string $forename;
 
 	/**
-	 * @var string
+	 * @var ?string
 	 */
-	protected $password;
+	protected ?string $surname;
 
 	/**
 	 * @var bool
 	 */
-	protected $active;
+	protected bool $active;
 
 	/**
 	 * @var bool
 	 */
-	protected $disabled;
+	protected bool $disabled;
 
 	/**
 	 * @var \DateTime
 	 */
-	protected $created;
+	protected \DateTime $created;
 
 	/**
 	 * @var \DateTime
 	 */
-	protected $updated;
+	protected \DateTime $updated;
 
 	/**
 	 * @var Civility
 	 */
-	protected $civility;
+	protected ?Civility $civility;
 
 	/**
-	 * @var ArrayCollection
+	 * @var Doctrine\Common\Collections\Collection
 	 */
-	protected $groups;
+	protected Collection $groups;
 
 	/**
 	 * Constructor
 	 *
-	 * @param ?string $mail The user mail
+	 * @param string $mail The user mail
+	 * @param string $password The user password
+	 * @param ?Civility $civility The user civility
+	 * @param ?string $forename The user forename
+	 * @param ?string $surname The user surname
+	 * @param bool $active The user active
+	 * @param bool $disabled The user disabled
 	 */
-	public function __construct(?string $mail = null) {
-		//With mail
-		if ($mail !== null && !empty($mail)) {
-			$this->mail = $mail;
-			$this->password = $mail;
-		//Without mail
-		} else {
-			$this->mail = '';
-			$this->password = '';
-		}
-
+	public function __construct(string $mail, string $password, ?Civility $civility = null, ?string $forename = null, ?string $surname = null, bool $active = false, bool $disabled = false) {
 		//Set defaults
-		$this->forename = null;
-		$this->surname = null;
-		$this->active = false;
-		$this->disabled = false;
+		$this->mail = $mail;
+		$this->password = $password;
+		$this->civility = $civility;
+		$this->forename = $forename;
+		$this->surname = $surname;
+		$this->active = $active;
+		$this->disabled = $disabled;
 		$this->created = new \DateTime('now');
 		$this->updated = new \DateTime('now');
 
@@ -109,33 +109,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
 	 * Get id
 	 *
-	 * @return integer
+	 * @return ?int
 	 */
-	public function getId(): int {
+	public function getId(): ?int {
 		return $this->id;
 	}
 
 	/**
 	 * Set mail
 	 *
-	 * @param ?string $mail
+	 * @param string $mail
 	 * @return User
 	 */
-	public function setMail(?string $mail): User {
-		//With mail
-		if ($mail !== null && !empty($mail)) {
-			//Set mail
-			$this->mail = $mail;
-
-			//Without password
-			if (empty($this->password)) {
-				//Set mail as password
-				$this->password = $mail;
-			}
-		//Without mail
-		} else {
-			$this->mail = '';
-		}
+	public function setMail(string $mail): User {
+		//Set mail
+		$this->mail = $mail;
 
 		return $this;
 	}
@@ -200,14 +188,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 *
 	 * @return User
 	 */
-	public function setPassword(?string $password): User {
-		//With password
-		if ($password !== null && !empty($password)) {
-			$this->password = $password;
-		//Without password
-		} else {
-			$this->password = '';
-		}
+	public function setPassword(string $password): User {
+		//Set password
+		$this->password = $password;
 
 		return $this;
 	}
@@ -314,7 +297,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
 	 * Set civility
 	 */
-	public function setCivility(Civility $civility): User {
+	public function setCivility(?Civility $civility = null): User {
 		$this->civility = $civility;
 
 		return $this;
@@ -334,7 +317,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 *
 	 * @return User
 	 */
-	public function addGroup(Group $group) {
+	public function addGroup(Group $group): User {
 		$this->groups[] = $group;
 
 		return $this;
@@ -344,17 +327,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 * Remove group
 	 *
 	 * @param Group $group
+	 *
+	 * @return Doctrine\Common\Collections\Collection
 	 */
-	public function removeGroup(Group $group) {
-		$this->groups->removeElement($group);
+	public function removeGroup(Group $group): Collection {
+		return $this->groups->removeElement($group);
 	}
 
 	/**
 	 * Get groups
 	 *
-	 * @return ArrayCollection
+	 * @return Doctrine\Common\Collections\Collection
 	 */
-	public function getGroups(): ArrayCollection {
+	public function getGroups(): Collection {
 		return $this->groups;
 	}
 
