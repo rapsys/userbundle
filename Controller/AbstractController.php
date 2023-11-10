@@ -38,9 +38,6 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	///Config array
 	protected $config;
 
-	///ContainerInterface instance
-	protected $container;
-
 	///Context array
 	protected $context;
 
