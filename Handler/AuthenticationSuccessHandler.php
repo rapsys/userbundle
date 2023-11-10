@@ -37,7 +37,7 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
 	/**
 	 * Default options
 	 */
-    protected $defaultOptions = [
+    protected array $defaultOptions = [
         'always_use_default_target_path' => false,
         'default_target_path' => '/',
         'login_path' => '/login',
@@ -48,12 +48,12 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
 	/**
 	 * Options
 	 */
-    protected $options;
+    protected array $options;
 
 	/**
 	 * Router instance
 	 */
-	protected $router;
+	protected RouterInterface $router;
 
 	/**
 	 * {@inheritdoc}
