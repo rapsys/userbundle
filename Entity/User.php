@@ -454,23 +454,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
 	 * Check if account is activated
 	 *
-	 * It was from deprecated AdvancedUserInterface, see if it's used anymore
-	 *
-	 * @see vendor/symfony/security-core/User/AdvancedUserInterface.php
+	 * @see vendor/rapsys/userbundle/Checker/UserChecker.php
 	 */
 	public function isActivated(): bool {
 		return $this->active;
 	}
 
 	/**
-	 * Check if account is disabled
+	 * Check if account is enabled
 	 *
-	 * It was from deprecated AdvancedUserInterface, see if it's used anymore
-	 *
-	 * @see vendor/symfony/security-core/User/AdvancedUserInterface.php
+	 * @see vendor/symfony/security-core/User/InMemoryUserChecker.php
 	 */
-	public function isDisabled(): bool {
-		return $this->disabled;
+	public function isEnabled(): bool {
+		return !$this->disabled;
 	}
 
 	/**

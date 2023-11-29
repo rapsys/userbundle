@@ -32,17 +32,13 @@ class UserChecker extends InMemoryUserChecker {
 		}
 
 		//With not activated user
-        if (!$user->isActivated()) {
-            $ex = new UnactivatedException('Account is not activated');
-            $ex->setUser($user);
-            throw $ex;
-        }
+		if (!$user->isActivated()) {
+			$ex = new UnactivatedException('User Account is not activated');
+			$ex->setUser($user);
+			throw $ex;
+		}
 
-		//With disabled user
-        if ($user->isDisabled()) {
-            $ex = new DisabledException('Account is disabled');
-            $ex->setUser($user);
-            throw $ex;
-        }
+		//Call parent checkPreAuth
+		parent::checkPostAuth($user);
 	}
 }
