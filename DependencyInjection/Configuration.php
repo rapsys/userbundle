@@ -73,8 +73,8 @@ class Configuration implements ConfigurationInterface {
 				'en_gb' => 'English'
 			],
 			'contact' => [
-				'title' => 'John Doe',
-				'mail' => 'contact@example.com'
+				'address' => 'contact@example.com',
+				'name' => 'John Doe'
 			],
 			'context' => [],
 			'edit' => [
@@ -236,8 +236,8 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('contact')
 						->addDefaultsIfNotSet()
 						->children()
-							->scalarNode('title')->cannotBeEmpty()->defaultValue($defaults['contact']['title'])->end()
-							->scalarNode('mail')->cannotBeEmpty()->defaultValue($defaults['contact']['mail'])->end()
+							->scalarNode('address')->cannotBeEmpty()->defaultValue($defaults['contact']['address'])->end()
+							->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['contact']['name'])->end()
 						->end()
 					->end()
 					->arrayNode('context')
