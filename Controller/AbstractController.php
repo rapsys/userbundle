@@ -18,12 +18,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController as BaseAbstract
 use Symfony\Bundle\FrameworkBundle\Controller\ControllerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Contracts\Service\ServiceSubscriberInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Twig\Environment;
 
 use Rapsys\PackBundle\Util\SluggerUtil;
 
@@ -36,37 +38,40 @@ use Rapsys\UserBundle\RapsysUserBundle;
  */
 abstract class AbstractController extends BaseAbstractController implements ServiceSubscriberInterface {
 	///Config array
-	protected $config;
+	protected array $config;
 
 	///Context array
-	protected $context;
+	protected array $context;
 
 	///ManagerRegistry
-	protected $doctrine;
+	protected ManagerRegistry $doctrine;
 
 	///UserPasswordHasherInterface
-	protected $hasher;
+	protected UserPasswordHasherInterface $hasher;
 
 	///LoggerInterface
-	protected $logger;
+	protected LoggerInterface $logger;
 
 	///MailerInterface
-	protected $mailer;
+	protected MailerInterface $mailer;
 
 	///EntityManagerInterface
-	protected $manager;
+	protected EntityManagerInterface $manager;
 
 	///Router instance
-	protected $router;
+	protected RouterInterface $router;
 
 	///Slugger util
-	protected $slugger;
+	protected SluggerUtil $slugger;
 
 	///Translator instance
-	protected $translator;
+	protected TranslatorInterface $translator;
+
+	///Twig\Environment instance
+	protected Environment $twig;
 
 	///Locale
-	protected $locale;
+	protected string $locale;
 
 	/**
 	 * Abstract constructor
@@ -81,8 +86,9 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	 * @param SluggerUtil $slugger The slugger instance
 	 * @param RequestStack $stack The stack instance
 	 * @param TranslatorInterface $translator The translator instance
+	 * @param Environment $twig The twig environment instance
 	 */
-	public function __construct(ContainerInterface $container, ManagerRegistry $doctrine, UserPasswordHasherInterface $hasher, LoggerInterface $logger, MailerInterface $mailer, EntityManagerInterface $manager, RouterInterface $router, SluggerUtil $slugger, RequestStack $stack, TranslatorInterface $translator) {
+	public function __construct(ContainerInterface $container, ManagerRegistry $doctrine, UserPasswordHasherInterface $hasher, LoggerInterface $logger, MailerInterface $mailer, EntityManagerInterface $manager, RouterInterface $router, SluggerUtil $slugger, RequestStack $stack, TranslatorInterface $translator, Environment $twig) {
 		//Retrieve config
 		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
 
@@ -113,14 +119,14 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 		//Set translator
 		$this->translator = $translator;
 
+		//Set twig
+		$this->twig = $twig;
+
 		//Get current request
 		$request = $stack->getCurrentRequest();
 
 		//Get current locale
 		$this->locale = $request->getLocale();
-
-		//Set locale
-		$this->config['context']['locale'] = str_replace('_', '-', $this->locale);
 
 		//Set translate array
 		$translates = [];
@@ -131,10 +137,12 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 			foreach($this->config['translate'] as $translate) {
 				//Set tmp
 				$tmp = null;
+
 				//Iterate on keys
 				foreach(array_reverse(explode('.', $translate)) as $curkey) {
 					$tmp = array_combine([$curkey], [$tmp]);
 				}
+
 				//Append tree
 				$translates = array_replace_recursive($translates, $tmp);
 			}
@@ -142,12 +150,6 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 
 		//Inject every requested route in view and mail context
 		foreach($this->config as $tag => $current) {
-			//Look for entry with title subkey
-			if (!empty($current['title'])) {
-				//Translate title value
-				$this->config[$tag]['title'] = $this->translator->trans($current['title']);
-			}
-
 			//Look for entry with route subkey
 			if (!empty($current['route'])) {
 				//Generate url for both view and mail
@@ -234,12 +236,12 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 							$pathInfo = $this->router->getContext()->getPathInfo();
 
 							//Iterate on locales excluding current one
-							foreach($this->config['locales'] as $locale) {
+							foreach(($locales = array_keys($this->config['languages'])) as $locale) {
 								//Set titles
 								$titles = [];
 
 								//Iterate on other locales
-								foreach(array_diff($this->config['locales'], [$locale]) as $other) {
+								foreach(array_diff($locales, [$locale]) as $other) {
 									$titles[$other] = $this->translator->trans($this->config['languages'][$locale], [], null, $other);
 								}
 
@@ -258,7 +260,7 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 									$this->config[$tag][$view]['context']['canonical'] = $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
 								} else {
 									//Set locale locales context
-									$this->config[$tag][$view]['context']['alternates'][$locale] = [
+									$this->config[$tag][$view]['context']['head']['alternates'][$locale] = [
 										'absolute' => $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
 										'relative' => $this->router->generate($name, ['_locale' => $locale]+$route),
 										'title' => implode('/', $titles),
@@ -267,9 +269,9 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 								}
 
 								//Add shorter locale
-								if (empty($this->config[$tag][$view]['context']['alternates'][$slocale = substr($locale, 0, 2)])) {
+								if (empty($this->config[$tag][$view]['context']['head']['alternates'][$slocale = substr($locale, 0, 2)])) {
 									//Add shorter locale
-									$this->config[$tag][$view]['context']['alternates'][$slocale] = [
+									$this->config[$tag][$view]['context']['head']['alternates'][$slocale] = [
 										'absolute' => $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
 										'relative' => $this->router->generate($name, ['_locale' => $locale]+$route),
 										'title' => implode('/', $titles),
@@ -282,6 +284,51 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 				}
 			}
 		}
+	}
+
+	/**
+	 * Renders a view
+	 *
+	 * {@inheritdoc}
+	 */
+	protected function render(string $view, array $parameters = [], Response $response = null): Response {
+		//Create response when null
+		$response ??= new Response();
+
+		//With empty head locale
+		if (empty($parameters['head']['locale'])) {
+			//Set head locale
+			$parameters['head']['locale'] = $this->locale;
+		}
+
+		//With empty head title and section
+		if (empty($parameters['head']['title']) && !empty($parameters['section'])) {
+			//Set head title
+			$parameters['head']['title'] = implode(' - ', [$parameters['title'], $parameters['section'], $parameters['head']['site']]);
+		//With empty head title
+		} elseif (empty($parameters['head']['title'])) {
+			//Set head title
+			$parameters['head']['title'] = implode(' - ', [$parameters['title'], $parameters['head']['site']]);
+		}
+
+		//Call twig render method
+		$content = $this->twig->render($view, $parameters);
+
+		//Invalidate OK response on invalid form
+		if (200 === $response->getStatusCode()) {
+			foreach ($parameters as $v) {
+				if ($v instanceof FormInterface && $v->isSubmitted() && !$v->isValid()) {
+					$response->setStatusCode(422);
+					break;
+				}
+			}
+		}
+
+		//Store content in response
+		$response->setContent($content);
+
+		//Return response
+		return $response;
 	}
 
 	/**
