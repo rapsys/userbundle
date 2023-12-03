@@ -57,7 +57,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
 	 * @var bool
 	 */
-	protected bool $disabled;
+	protected bool $enable;
 
 	/**
 	 * @var \DateTime
@@ -88,9 +88,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 * @param ?string $forename The user forename
 	 * @param ?string $surname The user surname
 	 * @param bool $active The user active
-	 * @param bool $disabled The user disabled
+	 * @param bool $enable The user enable
 	 */
-	public function __construct(string $mail, string $password, ?Civility $civility = null, ?string $forename = null, ?string $surname = null, bool $active = false, bool $disabled = false) {
+	public function __construct(string $mail, string $password, ?Civility $civility = null, ?string $forename = null, ?string $surname = null, bool $active = false, bool $enable = true) {
 		//Set defaults
 		$this->mail = $mail;
 		$this->password = $password;
@@ -98,7 +98,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 		$this->forename = $forename;
 		$this->surname = $surname;
 		$this->active = $active;
-		$this->disabled = $disabled;
+		$this->enable = $enable;
 		$this->created = new \DateTime('now');
 		$this->updated = new \DateTime('now');
 
@@ -229,25 +229,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	}
 
 	/**
-	 * Set disabled
+	 * Set enable
 	 *
-	 * @param bool $disabled
+	 * @param bool $enable
 	 *
 	 * @return User
 	 */
-	public function setDisabled(bool $disabled): User {
-		$this->disabled = $disabled;
+	public function setEnable(bool $enable): User {
+		$this->enable = $enable;
 
 		return $this;
 	}
 
 	/**
-	 * Get disabled
+	 * Get enable
 	 *
 	 * @return bool
 	 */
-	public function getDisabled(): bool {
-		return $this->disabled;
+	public function getEnable(): bool {
+		return $this->enable;
 	}
 
 	/**
@@ -428,7 +428,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 			$this->surname,
 			$this->password,
 			$this->active,
-			$this->disabled,
+			$this->enable,
 			$this->created,
 			$this->updated
 		];
@@ -445,7 +445,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 			$this->surname,
 			$this->password,
 			$this->active,
-			$this->disabled,
+			$this->enable,
 			$this->created,
 			$this->updated
 		) = $data;
@@ -466,7 +466,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 * @see vendor/symfony/security-core/User/InMemoryUserChecker.php
 	 */
 	public function isEnabled(): bool {
-		return !$this->disabled;
+		return $this->enable;
 	}
 
 	/**
