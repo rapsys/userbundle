@@ -27,10 +27,10 @@ Rapsys\UserBundle\Entity\User:
             type: boolean
             options:
                 default: true
-        disabled:
+        enable:
             type: boolean
             options:
-                default: false
+                default: true
         created:
             type: datetime
         updated:
