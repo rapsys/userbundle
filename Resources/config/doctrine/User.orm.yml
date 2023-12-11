@@ -24,7 +24,7 @@ Rapsys\UserBundle\Entity\User:
             nullable: true
         password:
             type: string
-            length: 60
+            length: 100
         active:
             type: boolean
             options:
