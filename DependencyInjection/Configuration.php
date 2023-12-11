@@ -39,6 +39,7 @@ class Configuration implements ConfigurationInterface {
 				'user' => 'Rapsys\\UserBundle\\Entity\\User'
 			],
 			'default' => [
+				'admin' => 'ROLE_ADMIN',
 				'civility' => 'Mister',
 				'group' => [ 'User' ]
 			],
@@ -78,12 +79,20 @@ class Configuration implements ConfigurationInterface {
 			],
 			'context' => [],
 			'edit' => [
+				'admin' => ['mail' => true, 'pseudonym' => true],
 				'field' => [],
 				'route' => ['index' => 'index_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/register.html.twig',
-					'edit' => 'Rapsys\UserBundle\Form\RegisterType',
-					'reset' => 'Rapsys\UserBundle\Form\LoginType',
+					'edit' => 'Rapsys\UserBundle\Form\EditType',
+					'reset' => 'Rapsys\UserBundle\Form\ResetType',
+					'context' => []
+				]
+			],
+			'index' => [
+				'route' => ['index' => 'index_url'],
+				'view' => [
+					'name' => '@RapsysUser/form/index.html.twig',
 					'context' => []
 				]
 			],
@@ -99,7 +108,7 @@ class Configuration implements ConfigurationInterface {
 				'route' => ['index' => 'index_url', 'recover' => 'recover_url'],
 				'view' => [
 					'name' => '@RapsysUser/form/recover.html.twig',
-					'form' => 'Rapsys\UserBundle\Form\LoginType',
+					'form' => 'Rapsys\UserBundle\Form\RecoverType',
 					'context' => []
 				],
 				'mail' => [
@@ -110,6 +119,7 @@ class Configuration implements ConfigurationInterface {
 				]
 			],
 			'register' => [
+				'admin' => [],
 				'field' => [],
 				'route' => ['index' => 'index_url', 'confirm' => 'confirm_url'],
 				'view' => [
@@ -147,9 +157,16 @@ class Configuration implements ConfigurationInterface {
 						->scalarPrototype()->end()
 					->end()
 					->arrayNode('default')
-						->treatNullLike([])
-						->defaultValue($defaults['default'])
-						->variablePrototype()->end()
+						->addDefaultsIfNotSet()
+						->children()
+							->scalarNode('admin')->cannotBeEmpty()->defaultValue($defaults['default']['admin'])->end()
+							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['default']['civility'])->end()
+							->arrayNode('group')
+								->treatNullLike([])
+								->defaultValue($defaults['default']['group'])
+								->scalarPrototype()->end()
+							->end()
+						->end()
 					->end()
 					->arrayNode('route')
 						->addDefaultsIfNotSet()
@@ -248,6 +265,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('edit')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('admin')
+								->treatNullLike([])
+								->defaultValue($defaults['edit']['admin'])
+								->variablePrototype()->end()
+							->end()
 							->arrayNode('field')
 								->treatNullLike([])
 								->defaultValue($defaults['edit']['field'])
@@ -267,6 +289,27 @@ class Configuration implements ConfigurationInterface {
 									->arrayNode('context')
 										->treatNullLike([])
 										->defaultValue($defaults['edit']['view']['context'])
+										->variablePrototype()->end()
+									->end()
+								->end()
+							->end()
+						->end()
+					->end()
+					->arrayNode('index')
+						->addDefaultsIfNotSet()
+						->children()
+							->arrayNode('route')
+								->treatNullLike([])
+								->defaultValue($defaults['index']['route'])
+								->scalarPrototype()->end()
+							->end()
+							->arrayNode('view')
+								->addDefaultsIfNotSet()
+								->children()
+									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['index']['view']['name'])->end()
+									->arrayNode('context')
+										->treatNullLike([])
+										->defaultValue($defaults['index']['view']['context'])
 										->variablePrototype()->end()
 									->end()
 								->end()
@@ -333,6 +376,11 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('register')
 						->addDefaultsIfNotSet()
 						->children()
+							->arrayNode('admin')
+								->treatNullLike([])
+								->defaultValue($defaults['edit']['admin'])
+								->variablePrototype()->end()
+							->end()
 							->arrayNode('field')
 								->treatNullLike([])
 								->defaultValue($defaults['register']['field'])
