@@ -14,6 +14,11 @@ rapsys_user_edit:
         mail: '[a-zA-Z0-9=_-]+'
     methods: GET|POST
 
+rapsys_user_index:
+    path: /
+    controller: Rapsys\UserBundle\Controller\UserController::index
+    methods: GET
+
 rapsys_user_login:
     path: /login/{hash}/{mail}
     controller: Rapsys\UserBundle\Controller\UserController::login
@@ -46,8 +51,3 @@ rapsys_user_register:
     path: /register
     controller: Rapsys\UserBundle\Controller\UserController::register
     methods: GET|POST
-
-rapsys_user:
-    path: /
-    controller: Rapsys\UserBundle\Controller\UserController::index
-    methods: GET
