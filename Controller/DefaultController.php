@@ -144,7 +144,7 @@ class DefaultController extends AbstractController {
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
 			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user: %mail%', ['%mail%' => $smail]));
 		}
-		
+
 		//Create the EditType form and give the proper parameters
 		$edit = $this->createForm($this->config['edit']['view']['edit'], $user, [
 			//Set action to edit route name and context
