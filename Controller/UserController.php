@@ -27,7 +27,7 @@ use Rapsys\UserBundle\RapsysUserBundle;
 /**
  * {@inheritdoc}
  */
-class DefaultController extends AbstractController {
+class UserController extends AbstractController {
 	/**
 	 * User index
 	 *
