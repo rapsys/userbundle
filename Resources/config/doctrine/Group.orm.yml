@@ -1,5 +1,6 @@
 Rapsys\UserBundle\Entity\Group:
     type: mappedSuperclass
+#   table: groups
     id:
         id:
             type: integer
