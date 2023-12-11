@@ -1,5 +1,6 @@
 Rapsys\UserBundle\Entity\Civility:
     type: mappedSuperclass
+#   table: civilities
     id:
         id:
             type: integer
