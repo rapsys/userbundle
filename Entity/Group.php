@@ -190,6 +190,7 @@ class Group {
 	 * @return string
 	 */
 	public function getRole(): string {
+		//XXX: $prefix = 'ROLE_' set in Role*Voter classes
 		return 'ROLE_'.strtoupper($this->title);
 	}
 }
