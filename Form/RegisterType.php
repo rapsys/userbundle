@@ -13,6 +13,7 @@ namespace Rapsys\UserBundle\Form;
 
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
@@ -40,7 +41,13 @@ class RegisterType extends AbstractType {
 
 		//Add extra password field
 		if (!empty($options['password'])) {
-			$form->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]], 'required' => true]);
+			//Add password repeated field
+			if (!empty($options['password_repeated'])) {
+				$form->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]], 'required' => true]);
+			//Add password field
+			} else {
+				$form->add('password', PasswordType::class, ['attr' => ['placeholder' => 'Your password'], 'constraints' => [new NotBlank(['message' => 'Please provide your password'])], 'required' => true]);
+			}
 		}
 
 		//Add extra civility field
@@ -58,6 +65,16 @@ class RegisterType extends AbstractType {
 			$form->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname']]);
 		}
 
+		//Add extra active field
+		if (!empty($options['active'])) {
+			$form->add('active', CheckboxType::class, ['attr' => ['placeholder' => 'Your active']]);
+		}
+
+		//Add extra enable field
+		if (!empty($options['enable'])) {
+			$form->add('enable', CheckboxType::class, ['attr' => ['placeholder' => 'Your enable']]);
+		}
+
 		//Add submit
 		$form->add('submit', SubmitType::class, ['label' => 'Send', 'attr' => ['class' => 'submit']]);
 
@@ -70,7 +87,10 @@ class RegisterType extends AbstractType {
 	 */
 	public function configureOptions(OptionsResolver $resolver): void {
 		//Set defaults
-		$resolver->setDefaults(['error_bubbling' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'civility' => true, 'forename' => true, 'surname' => true, 'password' => true]);
+		$resolver->setDefaults(['error_bubbling' => true, 'civility' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'password' => true, 'password_repeated' => true, 'forename' => true, 'surname' => true, 'active' => false, 'enable' => false]);
+
+		//Add extra civility option
+		$resolver->setAllowedTypes('civility', 'boolean');
 
 		//Add civility class
 		$resolver->setAllowedTypes('civility_class', 'string');
@@ -82,8 +102,11 @@ class RegisterType extends AbstractType {
 		//Add extra mail option
 		$resolver->setAllowedTypes('mail', 'boolean');
 
-		//Add extra civility option
-		$resolver->setAllowedTypes('civility', 'boolean');
+		//Add extra password option
+		$resolver->setAllowedTypes('password', 'boolean');
+
+		//Add extra password repeated option
+		$resolver->setAllowedTypes('password_repeated', 'boolean');
 
 		//Add extra forename option
 		$resolver->setAllowedTypes('forename', 'boolean');
@@ -91,8 +114,11 @@ class RegisterType extends AbstractType {
 		//Add extra surname option
 		$resolver->setAllowedTypes('surname', 'boolean');
 
-		//Add extra password option
-		$resolver->setAllowedTypes('password', 'boolean');
+		//Add extra active option
+		$resolver->setAllowedTypes('active', 'boolean');
+
+		//Add extra enable option
+		$resolver->setAllowedTypes('enable', 'boolean');
 	}
 
 	/**
