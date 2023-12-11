@@ -1,5 +1,7 @@
 Rapsys\UserBundle\Entity\User:
     type: mappedSuperclass
+    repositoryClass: Rapsys\UserBundle\Repository\UserRepository
+#   table: users
     id:
         id:
             type: integer
@@ -44,7 +46,13 @@ Rapsys\UserBundle\Entity\User:
             targetEntity: Group
             inversedBy: users
 #see if usefull: https://stackoverflow.com/questions/34523699/how-to-extend-doctrine-entity-in-another-bundle
-#            joinTable:
-#                name: groups_users
+#           joinTable:
+#               name: users_groups
+#               joinColumns:
+#                   id:
+#                       name: user_id
+#               inverseJoinColumns:
+#                   id:
+#                       name: group_id
     lifecycleCallbacks:
         preUpdate: ['preUpdate']
