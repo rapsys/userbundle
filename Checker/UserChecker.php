@@ -38,6 +38,13 @@ class UserChecker extends InMemoryUserChecker {
 			throw $ex;
 		}
 
+		//With not enabled user
+		if (!$user->isEnabled()) {
+			$ex = new DisabledException('User account is not enabled');
+			$ex->setUser($user);
+			throw $ex;
+		}
+
 		//Call parent checkPreAuth
 		parent::checkPostAuth($user);
 	}
