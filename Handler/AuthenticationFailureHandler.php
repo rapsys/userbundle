@@ -29,12 +29,14 @@ use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
+use Symfony\Component\Security\Core\Exception\DisabledException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Http\Authentication\DefaultAuthenticationFailureHandler;
 use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use Rapsys\PackBundle\Util\SluggerUtil;
+use Rapsys\UserBundle\Exception\UnactivatedException;
 use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
@@ -149,8 +151,6 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	/**
 	 * This is called when an interactive authentication attempt fails
 	 *
-	 * User may retrieve mail + field + hash for each unactivated/locked accounts
-	 *
 	 * {@inheritdoc}
 	 */
 	public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response {
@@ -158,273 +158,190 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 		if ($exception instanceof BadCredentialsException) {
 			//With parent exception
 			if (($parent = $exception->getPrevious()) instanceof UserNotFoundException) {
-				//Retrieve login
-				//TODO: check form _token validity ???
-				if (
-					!empty($login = $request->get('login')) &&
-					!empty($mail = $login['mail'])
-				) {
-					//Set extra parameters
-					$extra = ['mail' => $smail = $this->slugger->short($mail), 'field' => $sfield = $this->slugger->serialize([]), 'hash' => $this->slugger->hash($smail.$sfield)];
+				/** Disabled to prevent user mail + hash retrieval for each unactivated/locked accounts
 
-					//With failure target path option
-					if (!empty($failurePath = $this->options['failure_path'])) {
-						//With path
-						if ($failurePath[0] == '/') {
-							//Create login path request instance
-							$req = Request::create($failurePath);
+				//Get user identifier
+				$mail = $parent->getUserIdentifier();
 
-							//Get login path pathinfo
-							$path = $req->getPathInfo();
+				//Set extra parameters
+				$extra = ['mail' => $smail = $this->slugger->short($mail), 'hash' => $this->slugger->hash($smail)];*/
 
-							//Remove script name
-							$path = str_replace($request->getScriptName(), '', $path);
+				//With failure target path option
+				if (!empty($failurePath = $this->options['failure_path'])) {
+					//With path
+					if ($failurePath[0] == '/') {
+						//Create login path request instance
+						$req = Request::create($failurePath);
 
-							//Try with login path path
-							try {
-								//Save old context
-								$oldContext = $this->router->getContext();
+						//Get login path pathinfo
+						$path = $req->getPathInfo();
 
-								//Force clean context
-								//XXX: prevent MethodNotAllowedException on GET only routes because our context method is POST
-								//XXX: see vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php +42
-								$this->router->setContext(new RequestContext());
+						//Remove script name
+						$path = str_replace($request->getScriptName(), '', $path);
 
-								//Retrieve route matching path
-								$route = $this->router->match($path);
+						//Try with login path path
+						try {
+							//Save old context
+							$oldContext = $this->router->getContext();
 
-								//Reset context
-								$this->router->setContext($oldContext);
+							//Force clean context
+							//XXX: prevent MethodNotAllowedException on GET only routes because our context method is POST
+							//XXX: see vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php +42
+							$this->router->setContext(new RequestContext());
 
-								//Clear old context
-								unset($oldContext);
+							//Retrieve route matching path
+							$route = $this->router->match($path);
 
-								//With route name
-								if ($name = $route['_route']) {
-									//Remove route and controller from route defaults
-									unset($route['_route'], $route['_controller'], $route['_canonical_route']);
+							//Reset context
+							$this->router->setContext($oldContext);
 
-									//Generate url
-									$url = $this->router->generate($name, $extra+$route);
+							//Clear old context
+							unset($oldContext);
 
-									//Return redirect to url response
-									return new RedirectResponse($url, 302);
-								}
-							//No route matched
-							} catch (ResourceNotFoundException $e) {
-								//Unset default path, name and route
-								unset($failurePath, $name, $route);
-							}
-						//With route name
-						} else {
-							//Try with login path route
-							try {
-								//Retrieve route matching path
-								$url = $this->router->generate($failurePath, $extra);
+							//With route name
+							if ($name = $route['_route']) {
+								//Remove route and controller from route defaults
+								unset($route['_route'], $route['_controller'], $route['_canonical_route']);
+
+								//Generate url
+								$url = $this->router->generate($name, /*$extra+*/$route);
 
 								//Return redirect to url response
 								return new RedirectResponse($url, 302);
-							//Route not found, missing parameter or invalid parameter
-							} catch (RouteNotFoundException|MissingMandatoryParametersException|InvalidParameterException $e) {
-								//Unset default path and url
-								unset($failurePath, $url);
 							}
+						//No route matched
+						} catch (ResourceNotFoundException $e) {
+							//Unset default path, name and route
+							unset($failurePath, $name, $route);
 						}
-					}
-
-					//Without user
-					if (($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail)) === null) {
-						//With index route from config
-						if (!empty($name = $this->config['route']['register']['name']) && is_array($context = $this->config['route']['register']['context'])) {
-							//Try index route
-							try {
-								//Generate url
-								$url = $this->router->generate($name, $extra+$context);
-
-								//Return generated route
-								return new RedirectResponse($url, 302);
-							//No route matched
-							} catch (ResourceNotFoundException $e) {
-								//Unset name and context
-								unset($name, $context);
-							}
-						} 
-
-						//With login target path option
-						if (!empty($loginPath = $this->options['login_path'])) {
-							//With path
-							if ($loginPath[0] == '/') {
-								//Create login path request instance
-								$req = Request::create($loginPath);
-
-								//Get login path pathinfo
-								$path = $req->getPathInfo();
-
-								//Remove script name
-								$path = str_replace($request->getScriptName(), '', $path);
-
-								//Try with login path path
-								try {
-									//Save old context
-									$oldContext = $this->router->getContext();
-
-									//Force clean context
-									//XXX: prevent MethodNotAllowedException on GET only routes because our context method is POST
-									//XXX: see vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php +42
-									$this->router->setContext(new RequestContext());
-
-									//Retrieve route matching path
-									$route = $this->router->match($path);
-
-									//Reset context
-									$this->router->setContext($oldContext);
-
-									//Clear old context
-									unset($oldContext);
-
-									//With route name
-									if ($name = $route['_route']) {
-										//Remove route and controller from route defaults
-										unset($route['_route'], $route['_controller'], $route['_canonical_route']);
-
-										//Generate url
-										$url = $this->router->generate($name, $extra+$route);
-
-										//Return redirect to url response
-										return new RedirectResponse($url, 302);
-									}
-								//No route matched
-								} catch (ResourceNotFoundException $e) {
-									//Unset default path, name and route
-									unset($loginPath, $name, $route);
-								}
-							//With route name
-							} else {
-								//Try with login path route
-								try {
-									//Retrieve route matching path
-									$url = $this->router->generate($loginPath, $extra);
-
-									//Return redirect to url response
-									return new RedirectResponse($url, 302);
-								//Route not found, missing parameter or invalid parameter
-								} catch (RouteNotFoundException|MissingMandatoryParametersException|InvalidParameterException $e) {
-									//Unset default path and url
-									unset($loginPath, $url);
-								}
-							}
-						}
-					//With not enabled user
-					} elseif (empty($user->isEnabled())) {
-						//Add error message account is not enabled
-						$this->addFlash('error', $this->translator->trans('Your account is not enable'));
-
-						//Redirect on the same route with sent=1 to cleanup form
-						return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
-					//With unactivated user
-					} elseif (empty($user->isActivated())) {
-						//Set context
-						$context = [
-							'recipient_mail' => $user->getMail(),
-							'recipient_name' => $user->getRecipientName()
-						] + array_replace_recursive(
-							$this->config['context'],
-							$this->config['register']['view']['context'],
-							$this->config['register']['mail']['context']
-						);
-
-						//Generate each route route
-						foreach($this->config['register']['route'] as $route => $tag) {
-							//Only process defined routes
-							if (!empty($this->config['route'][$route])) {
-								//Process for confirm url
-								if ($route == 'confirm') {
-									//Set the url in context
-									$context[$tag] = $this->router->generate(
-										$this->config['route'][$route]['name'],
-										//Prepend subscribe context with tag
-										[
-											'mail' => $smail = $this->slugger->short($context['recipient_mail']),
-											'hash' => $this->slugger->hash($smail)
-										]+$this->config['route'][$route]['context'],
-										UrlGeneratorInterface::ABSOLUTE_URL
-									);
-								}
-							}
-						}
-
-						//Iterate on keys to translate
-						foreach($this->config['translate'] as $translate) {
-							//Extract keys
-							$keys = explode('.', $translate);
-
-							//Set current
-							$current =& $context;
-
-							//Iterate on each subkey
-							do {
-								//Skip unset translation keys
-								if (!isset($current[current($keys)])) {
-									continue(2);
-								}
-
-								//Set current to subkey
-								$current =& $current[current($keys)];
-							} while(next($keys));
-
-							//Set translation
-							$current = $this->translator->trans($current);
-
-							//Remove reference
-							unset($current);
-						}
-
-						//Translate subject
-						$context['subject'] = $subject = ucfirst(
-							$this->translator->trans(
-								$this->config['register']['mail']['subject'],
-								$this->slugger->flatten($context, null, '.', '%', '%')
-							)
-						);
-
-						//Create message
-						$message = (new TemplatedEmail())
-							//Set sender
-							->from(new Address($this->config['contact']['address'], $this->config['contact']['name']))
-							//Set recipient
-							//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
-							->to(new Address($context['recipient_mail'], $context['recipient_name']))
-							//Set subject
-							->subject($context['subject'])
-
-							//Set path to twig templates
-							->htmlTemplate($this->config['register']['mail']['html'])
-							->textTemplate($this->config['register']['mail']['text'])
-
-							//Set context
-							->context($context);
-
-						//Try sending message
-						//XXX: mail delivery may silently fail
+					//With route name
+					} else {
+						//Try with login path route
 						try {
-							//Send message
-							$this->mailer->send($message);
-						//Catch obvious transport exception
-						} catch(TransportExceptionInterface $e) {
-							//Add error message mail unreachable
-							$this->addFlash('error', $this->translator->trans('Unable to reach account'));
+							//Retrieve route matching path
+							$url = $this->router->generate($failurePath/*, $extra*/);
+
+							//Return redirect to url response
+							return new RedirectResponse($url, 302);
+						//Route not found, missing parameter or invalid parameter
+						} catch (RouteNotFoundException|MissingMandatoryParametersException|InvalidParameterException $e) {
+							//Unset default path and url
+							unset($failurePath, $url);
 						}
-
-						//Add notice
-						$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account you must follow the confirmation link inside'));
-
-						//Add junk warning
-						$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folders'));
-
-						//Redirect on the same route with sent=1 to cleanup form
-						return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
 					}
 				}
+			//With not enabled user
+			} elseif ($parent instanceof DisabledException) {
+				//Add error message account is not enabled
+				$this->addFlash('error', $this->translator->trans('Your account is not enabled'));
+
+				//Redirect on the same route with sent=1 to cleanup form
+				return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
+			//With not activated user
+			} elseif ($parent instanceof UnactivatedException) {
+				//Set user
+				$user = $parent->getUser();
+
+				//Set context
+				$context = [
+					'recipient_mail' => $user->getMail(),
+					'recipient_name' => $user->getRecipientName()
+				] + array_replace_recursive(
+					$this->config['context'],
+					$this->config['register']['view']['context'],
+					$this->config['register']['mail']['context']
+				);
+
+				//Generate each route route
+				foreach($this->config['register']['route'] as $route => $tag) {
+					//Only process defined routes
+					if (!empty($this->config['route'][$route])) {
+						//Process for confirm url
+						if ($route == 'confirm') {
+							//Set the url in context
+							$context[$tag] = $this->router->generate(
+								$this->config['route'][$route]['name'],
+								//Prepend confirm context with tag
+								[
+									'mail' => $smail = $this->slugger->short($context['recipient_mail']),
+									'hash' => $this->slugger->hash($smail)
+								]+$this->config['route'][$route]['context'],
+								UrlGeneratorInterface::ABSOLUTE_URL
+							);
+						}
+					}
+				}
+
+				//Iterate on keys to translate
+				foreach($this->config['translate'] as $translate) {
+					//Extract keys
+					$keys = explode('.', $translate);
+
+					//Set current
+					$current =& $context;
+
+					//Iterate on each subkey
+					do {
+						//Skip unset translation keys
+						if (!isset($current[current($keys)])) {
+							continue(2);
+						}
+
+						//Set current to subkey
+						$current =& $current[current($keys)];
+					} while(next($keys));
+
+					//Set translation
+					$current = $this->translator->trans($current);
+
+					//Remove reference
+					unset($current);
+				}
+
+				//Translate subject
+				$context['subject'] = $subject = ucfirst(
+					$this->translator->trans(
+						$this->config['register']['mail']['subject'],
+						$this->slugger->flatten($context, null, '.', '%', '%')
+					)
+				);
+
+				//Create message
+				$message = (new TemplatedEmail())
+					//Set sender
+					->from(new Address($this->config['contact']['address'], $this->config['contact']['name']))
+					//Set recipient
+					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
+					->to(new Address($context['recipient_mail'], $context['recipient_name']))
+					//Set subject
+					->subject($context['subject'])
+
+					//Set path to twig templates
+					->htmlTemplate($this->config['register']['mail']['html'])
+					->textTemplate($this->config['register']['mail']['text'])
+
+					//Set context
+					->context($context);
+
+				//Try sending message
+				//XXX: mail delivery may silently fail
+				try {
+					//Send message
+					$this->mailer->send($message);
+				//Catch obvious transport exception
+				} catch(TransportExceptionInterface $e) {
+					//Add error message mail unreachable
+					$this->addFlash('error', $this->translator->trans('Unable to reach account'));
+				}
+
+				//Add notice
+				$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account you must follow the confirmation link inside'));
+
+				//Add junk warning
+				$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folders'));
+
+				//Redirect on the same route with sent=1 to cleanup form
+				return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
 			}
 		}
 
