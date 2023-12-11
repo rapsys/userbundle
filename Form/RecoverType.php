@@ -16,7 +16,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 /**
  * {@inheritdoc}
  */
-class LoginType extends RegisterType {
+class RecoverType extends RegisterType {
 	/**
 	 * {@inheritdoc}
 	 */
@@ -25,13 +25,13 @@ class LoginType extends RegisterType {
 		parent::configureOptions($resolver);
 
 		//Set defaults
-		$resolver->setDefaults(['civility' => false, 'password' => true, 'password_repeated' => false, 'forename' => false, 'surname' => false]);
+		$resolver->setDefaults(['civility' => false, 'mail' => true, 'password' => true, 'forename' => false, 'surname' => false]);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_login';
+		return 'rapsys_user_recover';
 	}
 }

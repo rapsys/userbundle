@@ -11,12 +11,13 @@
 
 namespace Rapsys\UserBundle\Form;
 
+use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * {@inheritdoc}
  */
-class LoginType extends RegisterType {
+class EditType extends RegisterType {
 	/**
 	 * {@inheritdoc}
 	 */
@@ -25,13 +26,13 @@ class LoginType extends RegisterType {
 		parent::configureOptions($resolver);
 
 		//Set defaults
-		$resolver->setDefaults(['civility' => false, 'password' => true, 'password_repeated' => false, 'forename' => false, 'surname' => false]);
+		$resolver->setDefaults(['mail' => false, 'password' => false]);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_login';
+		return 'rapsys_user_edit';
 	}
 }
