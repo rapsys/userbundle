@@ -13,11 +13,13 @@ namespace Rapsys\UserBundle\Repository;
 
 use Doctrine\ORM\Query\ResultSetMapping;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
  * UserRepository
  */
-class UserRepository extends EntityRepository {
+class UserRepository extends EntityRepository implements PasswordUpgraderInterface {
 	/**
 	 * Find user count as int
 	 *
@@ -141,5 +143,16 @@ SQL;
 
 		//Send result
 		return $ret;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $hash): void {
+		//Set new hashed password
+		$user->setPassword($hash);
+
+		//Flush data to database
+		$this->getEntityManager()->flush();
 	}
 }
