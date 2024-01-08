@@ -233,7 +233,7 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 			//With not enabled user
 			} elseif ($parent instanceof DisabledException) {
 				//Add error message account is not enabled
-				$this->addFlash('error', $this->translator->trans('Your account is not enabled'));
+				$this->addFlash('error', $this->translator->trans('Account not enabled'));
 
 				//Redirect on the same route with sent=1 to cleanup form
 				return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
@@ -335,10 +335,10 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 				}
 
 				//Add notice
-				$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account you must follow the confirmation link inside'));
+				$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account follow the confirmation link inside'));
 
 				//Add junk warning
-				$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folders'));
+				$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folder'));
 
 				//Redirect on the same route with sent=1 to cleanup form
 				return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
