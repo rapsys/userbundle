@@ -91,7 +91,7 @@ class UserController extends AbstractController {
 		if (!($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 			//Add error message mail already exists
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			$this->addFlash('error', $this->translator->trans('Account %mail% do not exists', ['%mail%' => $smail]));
+			$this->addFlash('error', $this->translator->trans('Account do not exists'));
 
 			//Redirect to register view
 			return $this->redirectToRoute($this->config['route']['register']['name'], $this->config['route']['register']['context']);
@@ -135,14 +135,14 @@ class UserController extends AbstractController {
 		if (empty($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 			//Throw not found
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			throw $this->createNotFoundException($this->translator->trans('Unable to find account %mail%', ['%mail%' => $smail]));
+			throw $this->createNotFoundException($this->translator->trans('Unable to find account'));
 		}
 
 		//Prevent access when not admin, user is not guest and not currently logged user
 		if (!$this->checker->isGranted($this->config['default']['admin']) && $user != $this->security->getUser() || !$this->checker->isGranted('IS_AUTHENTICATED_FULLY')) {
 			//Throw access denied
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user: %mail%', ['%mail%' => $smail]));
+			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user'));
 		}
 
 		//Create the EditType form and give the proper parameters
@@ -187,7 +187,7 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add notice
-					$this->addFlash('notice', $this->translator->trans('Account %mail% password updated', ['%mail%' => $mail = $data->getMail()]));
+					$this->addFlash('notice', $this->translator->trans('Account password updated'));
 
 					//Redirect to cleanup the form
 					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $this->slugger->short($mail), 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']);
@@ -217,14 +217,14 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add notice
-					$this->addFlash('notice', $this->translator->trans('Account %mail% updated', ['%mail%' => $mail = $data->getMail()]));
+					$this->addFlash('notice', $this->translator->trans('Account updated'));
 
 					//Redirect to cleanup the form
 					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $this->slugger->short($mail), 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']);
 				//Catch double slug or mail
 				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$this->addFlash('error', $this->translator->trans('Account %mail% already exists', ['%mail%' => $data->getMail()]));
+					$this->addFlash('error', $this->translator->trans('Account already exists'));
 				}
 			}
 		//Without admin role
@@ -367,7 +367,7 @@ class UserController extends AbstractController {
 			if (empty($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 				//Throw not found
 				//XXX: prevent slugger reverse engineering by not displaying decoded mail
-				throw $this->createNotFoundException($this->translator->trans('Unable to find account %mail%', ['%mail%' => $smail]));
+				throw $this->createNotFoundException($this->translator->trans('Unable to find account'));
 			}
 
 			//With unmatched pass
@@ -516,10 +516,10 @@ class UserController extends AbstractController {
 						$this->mailer->send($message);
 
 						//Add notice
-						$this->addFlash('notice', $this->translator->trans('Your recovery mail has been sent, to retrieve your account you must follow the recuperate link inside'));
+						$this->addFlash('notice', $this->translator->trans('Your recovery mail has been sent, to retrieve your account follow the recuperate link inside'));
 
 						//Add junk warning
-						$this->addFlash('warning', $this->translator->trans('If you did not receive a recovery mail, check your Spam or Junk mail folders'));
+						$this->addFlash('warning', $this->translator->trans('If you did not receive a recovery mail, check your Spam or Junk mail folder'));
 
 						//Redirect on the same route with sent=1 to cleanup form
 						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'), 302);
@@ -707,7 +707,7 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add error message mail already exists
-					$this->addFlash('notice', $this->translator->trans('Your account has been created'));
+					$this->addFlash('notice', $this->translator->trans('Account created'));
 
 					//Try sending message
 					//XXX: mail delivery may silently fail
