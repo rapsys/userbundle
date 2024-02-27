@@ -47,43 +47,12 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	 * Config array
 	 */
 	protected array $config;
-	protected array $options;
 	protected array $defaultOptions = [
 		'failure_path' => null,
 		'failure_forward' => false,
 		'login_path' => '/login',
 		'failure_path_parameter' => '_failure_path',
 	];
-
-	/**
-	 * Doctrine instance
-	 */
-	protected ManagerRegistry $doctrine;
-
-	/**
-	 * MailerInterface
-	 */
-	protected MailerInterface $mailer;
-
-	/**
-	 * Router instance
-	 */
-	protected RouterInterface $router;
-
-	/**
-	 * Slugger instance
-	 */
-	protected SluggerUtil $slugger;
-
-	/**
-	 * RequestStack instance
-	 */
-	protected RequestStack $stack;
-
-	/**
-	 * Translator instance
-	 */
-	protected TranslatorInterface $translator;
 
 	/**
 	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
@@ -103,30 +72,12 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	 *
 	 * {@inheritdoc}
 	 */
-	public function __construct(HttpKernelInterface $httpKernel, HttpUtils $httpUtils, array $options, LoggerInterface $logger, ContainerInterface $container, ManagerRegistry $doctrine, MailerInterface $mailer, RouterInterface $router, SluggerUtil $slugger, RequestStack $stack, TranslatorInterface $translator) {
-		//Set config
-		$this->config = $container->getParameter(self::getAlias());
-
-		//Set doctrine
-		$this->doctrine = $doctrine;
-
-		//Set mailer
-		$this->mailer = $mailer;
-
-		//Set router
-		$this->router = $router;
-
-		//Set slugger
-		$this->slugger = $slugger;
-
-		//Set stack
-		$this->stack = $stack;
-
-		//Set translator
-		$this->translator = $translator;
-
+	public function __construct(protected HttpKernelInterface $httpKernel, protected HttpUtils $httpUtils, protected array $options, protected LoggerInterface $logger, protected ContainerInterface $container, protected ManagerRegistry $doctrine, protected MailerInterface $mailer, protected RouterInterface $router, protected SluggerUtil $slugger, protected RequestStack $stack, protected TranslatorInterface $translator) {
 		//Call parent constructor
 		parent::__construct($httpKernel, $httpUtils, $options, $logger);
+
+		//Set config
+		$this->config = $container->getParameter(self::getAlias());
 	}
 
 	/**
