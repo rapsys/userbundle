@@ -46,22 +46,9 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
     ];
 
 	/**
-	 * Options
-	 */
-    protected array $options;
-
-	/**
-	 * Router instance
-	 */
-	protected RouterInterface $router;
-
-	/**
 	 * {@inheritdoc}
 	 */
-	public function __construct(RouterInterface $router, array $options = []) {
-		//Set router
-		$this->router = $router;
-
+	public function __construct(protected RouterInterface $router, protected array $options = []) {
 		//Set options
 		$this->setOptions($options);
 	}
