@@ -9,10 +9,10 @@
  * file that was distributed with this source code.
  */
 
-namespace Rapsys\UserBundle\Repository;
+namespace Rapsys\UserBundle;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository as BaseEntityRepository;
+use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -20,25 +20,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Rapsys\PackBundle\Util\SluggerUtil;
 
 /**
- * EntityRepository
+ * Repository
  *
  * {@inheritdoc}
  */
-class EntityRepository extends BaseEntityRepository {
-	/**
-	 * The RouterInterface instance
-	 *
-	 * @var RouterInterface
-	 */
-	protected RouterInterface $router;
-
-	/**
-	 * The SluggerUtil instance
-	 *
-	 * @var SluggerUtil
-	 */
-	protected SluggerUtil $slugger;
-
+class Repository extends EntityRepository {
 	/**
 	 * The table keys array
 	 *
@@ -54,27 +40,6 @@ class EntityRepository extends BaseEntityRepository {
 	protected array $tableValues;
 
 	/**
-	 * The TranslatorInterface instance
-	 *
-	 * @var TranslatorInterface
-	 */
-	protected TranslatorInterface $translator;
-
-	/**
-	 * The list of languages
-	 *
-	 * @var string[]
-	 */
-	protected array $languages = [];
-
-	/**
-	 * The current locale
-	 *
-	 * @var string
-	 */
-	protected string $locale;
-
-	/**
 	 * Initializes a new LocationRepository instance
 	 *
 	 * @param EntityManagerInterface $manager The EntityManagerInterface instance
@@ -82,27 +47,11 @@ class EntityRepository extends BaseEntityRepository {
 	 * @param RouterInterface $router The router instance
 	 * @param SluggerUtil $slugger The SluggerUtil instance
 	 * @param TranslatorInterface $translator The TranslatorInterface instance
-	 * @param array $languages The languages list
 	 * @param string $locale The current locale
 	 */
-	public function __construct(EntityManagerInterface $manager, ClassMetadata $class, RouterInterface $router, SluggerUtil $slugger, TranslatorInterface $translator, array $languages, string $locale) {
+	public function __construct(protected EntityManagerInterface $manager, protected ClassMetadata $class, protected RouterInterface $router, protected SluggerUtil $slugger, protected TranslatorInterface $translator, protected string $locale) {
 		//Call parent constructor
 		parent::__construct($manager, $class);
-
-		//Set languages
-		$this->languages = $languages;
-
-		//Set locale
-		$this->locale = $locale;
-
-		//Set router
-		$this->router = $router;
-
-		//Set slugger
-		$this->slugger = $slugger;
-
-		//Set translator
-		$this->translator = $translator;
 
 		//Get quote strategy
 		$qs = $manager->getConfiguration()->getQuoteStrategy();

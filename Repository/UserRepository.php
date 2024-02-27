@@ -16,10 +16,12 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
+use Rapsys\UserBundle\Repository;
+
 /**
  * UserRepository
  */
-class UserRepository extends EntityRepository implements PasswordUpgraderInterface {
+class UserRepository extends Repository implements PasswordUpgraderInterface {
 	/**
 	 * Find user count as int
 	 *
