@@ -1,3 +1,9 @@
+#Framework configuration
+framework:
+    cache:
+        pools:
+            user.cache:
+                adapter: 'cache.adapter.system'
 #Service configuration
 services:
     #Register security context service
@@ -7,7 +13,7 @@ services:
         arguments: [ [ '@security.access.role_hierarchy_voter' ] ]
     #Register default controller
     Rapsys\UserBundle\Controller\UserController:
-        arguments: [ '@security.authorization_checker', '@service_container', '@doctrine', '@security.user_password_hasher', '@logger', '@mailer.mailer', '@doctrine.orm.default_entity_manager', '@router', '@security.helper', '@rapsys_pack.slugger_util', '@request_stack', '@translator', '@twig' ]
+        arguments: [ '@user.cache', '@security.authorization_checker', '@service_container', '@doctrine', '@form.factory', '@security.user_password_hasher', '@logger', '@mailer.mailer', '@doctrine.orm.default_entity_manager', '@router', '@security.helper', '@rapsys_pack.slugger_util', '@request_stack', '@translator', '@twig' ]
         tags: [ 'controller.service_arguments' ]
     #Register default repository factory
     Rapsys\UserBundle\Factory\RepositoryFactory:
