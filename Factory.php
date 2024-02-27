@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Rapsys\UserBundle\Factory;
+namespace Rapsys\UserBundle;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Repository\RepositoryFactory as RepositoryFactoryInterface;
@@ -23,55 +23,11 @@ use Rapsys\PackBundle\Util\SluggerUtil;
 /**
  * This factory is used to create default repository objects for entities at runtime.
  */
-final class RepositoryFactory implements RepositoryFactoryInterface {
+final class Factory implements RepositoryFactoryInterface {
 	/**
 	 * The list of EntityRepository instances
-	 *
-	 * @var array
 	 */
 	private array $repositoryList = [];
-
-	/**
-	 * The list of languages
-	 *
-	 * @var array
-	 */
-	private array $languages = [];
-
-	/**
-	 * The current locale
-	 *
-	 * @var string
-	 */
-	private string $locale;
-
-	/**
-	 * The RequestStack instance
-	 *
-	 * @var RequestStack
-	 */
-	private RequestStack $request;
-
-	/**
-	 * The RouterInterface instance
-	 *
-	 * @var RouterInterface
-	 */
-	private RouterInterface $router;
-
-	/**
-	 * The SluggerUtil instance
-	 *
-	 * @var SluggerUtil
-	 */
-	private SluggerUtil $slugger;
-
-	/**
-	 * The TranslatorInterface instance
-	 *
-	 * @var TranslatorInterface
-	 */
-	private TranslatorInterface $translator;
 
 	/**
 	 * Initializes a new RepositoryFactory instance
@@ -80,27 +36,9 @@ final class RepositoryFactory implements RepositoryFactoryInterface {
 	 * @param RouterInterface $router The router instance
 	 * @param SluggerUtil $slugger The SluggerUtil instance
 	 * @param TranslatorInterface $translator The TranslatorInterface instance
-	 * @param array $languages The languages list
 	 * @param string $locale The current locale
 	 */
-	public function __construct(RequestStack $request, RouterInterface $router, SluggerUtil $slugger, TranslatorInterface $translator, array $languages, string $locale) {
-		//Set request
-		$this->request = $request;
-
-		//Set router
-		$this->router = $router;
-
-		//Set slugger
-		$this->slugger = $slugger;
-
-		//Set translator
-		$this->translator = $translator;
-
-		//Set languages
-		$this->languages = $languages;
-
-		//Set locale
-		$this->locale = $locale;
+	public function __construct(private RequestStack $request, private RouterInterface $router, private SluggerUtil $slugger, private TranslatorInterface $translator, private string $locale) {
 	}
 
 	/**
@@ -138,7 +76,7 @@ final class RepositoryFactory implements RepositoryFactoryInterface {
 		$this->locale = $this->request->getCurrentRequest()->getLocale() ?? $this->locale;
 
 		//Return repository class instance
-		//XXX: router, slugger, translator, languages and locale arguments will be ignored by default
-		return new $repositoryClass($entityManager, $metadata, $this->router, $this->slugger, $this->translator, $this->languages, $this->locale);
+		//XXX: router, slugger, translator and locale arguments will be ignored by default
+		return new $repositoryClass($entityManager, $metadata, $this->router, $this->slugger, $this->translator, $this->locale);
 	}
 }
