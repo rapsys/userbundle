@@ -35,25 +35,14 @@ class LogoutListener implements EventSubscriberInterface {
 	protected $config;
 
 	/**
-	 * Target url
-	 */
-	private $targetUrl;
-
-	/**
 	 * {@inheritdoc}
 	 *
 	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
 	 * @see vendor/symfony/security-bundle/Resources/config/security_listeners.php +79
 	 */
-	public function __construct(ContainerInterface $container, string $targetUrl, RouterInterface $router) {
+	public function __construct(protected ContainerInterface $container, protected string $targetUrl, protected RouterInterface $router) {
 		//Set config
 		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
-
-		//Set target url
-		$this->targetUrl = $targetUrl;
-
-		//Set router
-		$this->router = $router;
 	}
 
 	/**
