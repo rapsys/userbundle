@@ -13,11 +13,14 @@ namespace Rapsys\UserBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+
 use Psr\Log\LoggerInterface;
+
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController as BaseAbstractController;
 use Symfony\Bundle\FrameworkBundle\Controller\ControllerTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,8 +30,10 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Service\ServiceSubscriberInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+
 use Twig\Environment;
 
 use Rapsys\PackBundle\Util\SluggerUtil;
@@ -52,11 +57,6 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	protected array $context;
 
 	/**
-	 * Limit integer
-	 */
-	protected int $limit;
-
-	/**
 	 * Locale string
 	 */
 	protected string $locale;
@@ -67,71 +67,13 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	protected int $page;
 
 	/**
-	 * AuthorizationCheckerInterface instance
-	 */
-	protected AuthorizationCheckerInterface $checker;
-
-	/**
-	 * ManagerRegistry instance
-	 */
-	protected ManagerRegistry $doctrine;
-
-	/**
-	 * UserPasswordHasherInterface instance
-	 */
-	protected UserPasswordHasherInterface $hasher;
-
-	/**
-	 * LoggerInterface instance
-	 */
-	protected LoggerInterface $logger;
-
-	/**
-	 * MailerInterface instance
-	 */
-	protected MailerInterface $mailer;
-
-	/**
-	 * EntityManagerInterface instance
-	 */
-	protected EntityManagerInterface $manager;
-
-	/**
-	 * Request instance
-	 */
-	protected Request $request;
-
-	/**
-	 * Router instance
-	 */
-	protected RouterInterface $router;
-
-	/**
-	 * Security instance
-	 */
-	protected Security $security;
-
-	/**
-	 * Slugger util instance
-	 */
-	protected SluggerUtil $slugger;
-
-	/**
-	 * Translator instance
-	 */
-	protected TranslatorInterface $translator;
-
-	/**
-	 * Twig\Environment instance
-	 */
-	protected Environment $twig;
-
-	/**
 	 * Abstract constructor
 	 *
+	 * @param CacheInterface $cache The cache instance
 	 * @param AuthorizationCheckerInterface $checker The checker instance
 	 * @param ContainerInterface $container The container instance
 	 * @param ManagerRegistry $doctrine The doctrine instance
+	 * @param FormFactoryInterface $factory The factory instance
 	 * @param UserPasswordHasherInterface $hasher The password hasher instance
 	 * @param LoggerInterface $logger The logger instance
 	 * @param MailerInterface $mailer The mailer instance
@@ -144,48 +86,9 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	 * @param Environment $twig The twig environment instance
 	 * @param integer $limit The page limit
 	 */
-	public function __construct(AuthorizationCheckerInterface $checker, ContainerInterface $container, ManagerRegistry $doctrine, UserPasswordHasherInterface $hasher, LoggerInterface $logger, MailerInterface $mailer, EntityManagerInterface $manager, RouterInterface $router, Security $security, SluggerUtil $slugger, RequestStack $stack, TranslatorInterface $translator, Environment $twig, int $limit = 5) {
+	public function __construct(protected CacheInterface $cache, protected AuthorizationCheckerInterface $checker, protected ContainerInterface $container, protected ManagerRegistry $doctrine, protected FormFactoryInterface $factory, protected UserPasswordHasherInterface $hasher, protected LoggerInterface $logger, protected MailerInterface $mailer, protected EntityManagerInterface $manager, protected RouterInterface $router, protected Security $security, protected SluggerUtil $slugger, protected RequestStack $stack, protected TranslatorInterface $translator, protected Environment $twig, protected int $limit = 5) {
 		//Retrieve config
 		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
-
-		//Set checker
-		$this->checker = $checker;
-
-		//Set container
-		$this->container = $container;
-
-		//Set doctrine
-		$this->doctrine = $doctrine;
-
-		//Set hasher
-		$this->hasher = $hasher;
-
-		//Set logger
-		$this->logger = $logger;
-
-		//Set limit
-		$this->limit = $limit;
-
-		//Set mailer
-		$this->mailer = $mailer;
-
-		//Set manager
-		$this->manager = $manager;
-
-		//Set router
-		$this->router = $router;
-
-		//Set security
-		$this->security = $security;
-
-		//Set slugger
-		$this->slugger = $slugger;
-
-		//Set translator
-		$this->translator = $translator;
-
-		//Set twig
-		$this->twig = $twig;
 
 		//Get current request
 		$this->request = $stack->getCurrentRequest();
@@ -414,16 +317,19 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 		return [
 			'doctrine' => ManagerRegistry::class,
 			'doctrine.orm.default_entity_manager' => EntityManagerInterface::class,
+			'form.factory' => FormFactoryInterface::class,
 			'logger' => LoggerInterface::class,
 			'mailer.mailer' => MailerInterface::class,
 			'rapsys_pack.slugger_util' => SluggerUtil::class,
 			'request_stack' => RequestStack::class,
 			'router' => RouterInterface::class,
 			'security.authorization_checker' => AuthorizationCheckerInterface::class,
-			'security' => Security::class,
+			'security.helper' => Security::class,
 			'security.user_password_hasher' => UserPasswordHasherInterface::class,
 			'service_container' => ContainerInterface::class,
-			'translator' => TranslatorInterface::class
+			'translator' => TranslatorInterface::class,
+			'twig' => Environment::class,
+			'user.cache' => CacheInterface::class
 		];
 	}
 }
