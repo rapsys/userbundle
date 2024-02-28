@@ -1,9 +1,9 @@
-#Doctrine configuration
-doctrine:
-    #Orm configuration
-    orm:
-        #Replace repository factory
-        repository_factory: 'Rapsys\UserBundle\Factory'
+##Doctrine configuration
+#doctrine:
+#    #Orm configuration
+#    orm:
+#        #Replace repository factory
+#        repository_factory: 'Rapsys\UserBundle\Factory'
 
 #Framework configuration
 framework:
