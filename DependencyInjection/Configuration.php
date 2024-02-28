@@ -34,8 +34,8 @@ class Configuration implements ConfigurationInterface {
 		//The bundle default values
 		$defaults = [
 			'class' => [
-				'group' => 'Rapsys\\UserBundle\\Entity\\Group',
 				'civility' => 'Rapsys\\UserBundle\\Entity\\Civility',
+				'group' => 'Rapsys\\UserBundle\\Entity\\Group',
 				'user' => 'Rapsys\\UserBundle\\Entity\\User'
 			],
 			'default' => [
@@ -70,9 +70,6 @@ class Configuration implements ConfigurationInterface {
 				]
 			],
 			'translate' => [],
-			'languages' => [
-				'en_gb' => 'English'
-			],
 			'contact' => [
 				'address' => 'contact@example.com',
 				'name' => 'John Doe'
@@ -152,12 +149,17 @@ class Configuration implements ConfigurationInterface {
 				->addDefaultsIfNotSet()
 				->children()
 					->arrayNode('class')
-						->treatNullLike([])
-						->defaultValue($defaults['class'])
-						->scalarPrototype()->end()
+						->addDefaultsIfNotSet()
+						->ignoreExtraKeys()
+						->children()
+							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['class']['civility'])->end()
+							->scalarNode('group')->cannotBeEmpty()->defaultValue($defaults['class']['group'])->end()
+							->scalarNode('user')->cannotBeEmpty()->defaultValue($defaults['class']['user'])->end()
+						->end()
 					->end()
 					->arrayNode('default')
 						->addDefaultsIfNotSet()
+						->ignoreExtraKeys()
 						->children()
 							->scalarNode('admin')->cannotBeEmpty()->defaultValue($defaults['default']['admin'])->end()
 							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['default']['civility'])->end()
@@ -242,12 +244,6 @@ class Configuration implements ConfigurationInterface {
 					->arrayNode('translate')
 						->treatNullLike([])
 						->defaultValue($defaults['translate'])
-						->scalarPrototype()->end()
-					->end()
-					#TODO: see if we can't prevent key normalisation with ->normalizeKeys(false)
-					->arrayNode('languages')
-						->treatNullLike([])
-						->defaultValue($defaults['languages'])
 						->scalarPrototype()->end()
 					->end()
 					->arrayNode('contact')
