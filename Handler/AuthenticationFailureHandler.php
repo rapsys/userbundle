@@ -72,7 +72,7 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	 *
 	 * {@inheritdoc}
 	 */
-	public function __construct(protected HttpKernelInterface $httpKernel, protected HttpUtils $httpUtils, protected array $options, protected LoggerInterface $logger, protected ContainerInterface $container, protected ManagerRegistry $doctrine, protected MailerInterface $mailer, protected RouterInterface $router, protected SluggerUtil $slugger, protected RequestStack $stack, protected TranslatorInterface $translator) {
+	public function __construct(protected HttpKernelInterface $httpKernel, protected HttpUtils $httpUtils, protected array $options, protected ?LoggerInterface $logger, protected ContainerInterface $container, protected ManagerRegistry $doctrine, protected MailerInterface $mailer, protected RouterInterface $router, protected SluggerUtil $slugger, protected RequestStack $stack, protected TranslatorInterface $translator) {
 		//Call parent constructor
 		parent::__construct($httpKernel, $httpUtils, $options, $logger);
 
