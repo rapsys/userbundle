@@ -1,3 +1,4 @@
+#XXX: needs to be commented out when using an other one with extra keys
 ##Doctrine configuration
 #doctrine:
 #    #Orm configuration
