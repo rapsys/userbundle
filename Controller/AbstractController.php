@@ -212,13 +212,13 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 							$pathInfo = $this->router->getContext()->getPathInfo();
 
 							//Iterate on locales excluding current one
-							foreach(($locales = array_keys($this->config['languages'])) as $locale) {
+							foreach(($locales = array_keys($this->config['default']['languages'])) as $locale) {
 								//Set titles
 								$titles = [];
 
 								//Iterate on other locales
 								foreach(array_diff($locales, [$locale]) as $other) {
-									$titles[$other] = $this->translator->trans($this->config['languages'][$locale], [], null, $other);
+									$titles[$other] = $this->translator->trans($this->config['default']['languages'][$locale], [], null, $other);
 								}
 
 								//Retrieve route matching path
@@ -233,25 +233,25 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 								//With current locale
 								if ($locale == $this->locale) {
 									//Set locale locales context
-									$this->config[$tag][$view]['context']['head']['canonical'] = $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
+									$this->config[$tag][$view]['context']['canonical'] = $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
 								} else {
 									//Set locale locales context
-									$this->config[$tag][$view]['context']['head']['alternates'][$locale] = [
+									$this->config[$tag][$view]['context']['alternates'][$locale] = [
 										'absolute' => $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
 										'relative' => $this->router->generate($name, ['_locale' => $locale]+$route),
 										'title' => implode('/', $titles),
-										'translated' => $this->translator->trans($this->config['languages'][$locale], [], null, $locale)
+										'translated' => $this->translator->trans($this->config['default']['languages'][$locale], [], null, $locale)
 									];
 								}
 
 								//Add shorter locale
-								if (empty($this->config[$tag][$view]['context']['head']['alternates'][$slocale = substr($locale, 0, 2)])) {
+								if (empty($this->config[$tag][$view]['context']['alternates'][$slocale = substr($locale, 0, 2)])) {
 									//Add shorter locale
-									$this->config[$tag][$view]['context']['head']['alternates'][$slocale] = [
+									$this->config[$tag][$view]['context']['alternates'][$slocale] = [
 										'absolute' => $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
 										'relative' => $this->router->generate($name, ['_locale' => $locale]+$route),
 										'title' => implode('/', $titles),
-										'translated' => $this->translator->trans($this->config['languages'][$locale], [], null, $locale)
+										'translated' => $this->translator->trans($this->config['default']['languages'][$locale], [], null, $locale)
 									];
 								}
 							}
@@ -272,20 +272,21 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 		$response ??= new Response();
 
 		//With empty head locale
-		if (empty($parameters['head']['locale'])) {
+		if (empty($parameters['locale'])) {
 			//Set head locale
-			$parameters['head']['locale'] = $this->locale;
+			$parameters['locale'] = $this->locale;
 		}
 
+		/*TODO: XXX: to drop, we have title => [ 'page' => XXX, section => XXX, site => XXX ]
 		//With empty head title and section
 		if (empty($parameters['head']['title']) && !empty($parameters['section'])) {
 			//Set head title
-			$parameters['head']['title'] = implode(' - ', [$parameters['title'], $parameters['section'], $parameters['head']['site']]);
+			$parameters['title'] = implode(' - ', [$parameters['title'], $parameters['section'], $parameters['head']['site']]);
 		//With empty head title
 		} elseif (empty($parameters['head']['title'])) {
 			//Set head title
 			$parameters['head']['title'] = implode(' - ', [$parameters['title'], $parameters['head']['site']]);
-		}
+		}*/
 
 		//Call twig render method
 		$content = $this->twig->render($view, $parameters);
