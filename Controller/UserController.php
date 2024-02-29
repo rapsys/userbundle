@@ -146,7 +146,7 @@ class UserController extends AbstractController {
 		}
 
 		//Create the EditType form and give the proper parameters
-		$edit = $this->createForm($this->config['edit']['view']['edit'], $user, [
+		$edit = $this->factory->create($this->config['edit']['view']['edit'], $user, [
 			//Set action to edit route name and context
 			'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']),
 			//Set civility class
@@ -160,7 +160,7 @@ class UserController extends AbstractController {
 		//With admin role
 		if ($this->checker->isGranted($this->config['default']['admin'])) {
 			//Create the EditType form and give the proper parameters
-			$reset = $this->createForm($this->config['edit']['view']['reset'], $user, [
+			$reset = $this->factory->create($this->config['edit']['view']['reset'], $user, [
 				//Set action to edit route name and context
 				'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']),
 				//Set method
@@ -254,7 +254,7 @@ class UserController extends AbstractController {
 	 */
 	public function login(Request $request, AuthenticationUtils $authenticationUtils, ?string $hash, ?string $mail): Response {
 		//Create the LoginType form and give the proper parameters
-		$login = $this->createForm($this->config['login']['view']['form'], null, [
+		$login = $this->factory->create($this->config['login']['view']['form'], null, [
 			//Set action to login route name and context
 			'action' => $this->generateUrl($this->config['route']['login']['name'], $this->config['route']['login']['context']),
 			//Set method
@@ -297,7 +297,7 @@ class UserController extends AbstractController {
 			$login->get('mail')->addError(new FormError($error));
 
 			//Create the RecoverType form and give the proper parameters
-			$recover = $this->createForm($this->config['recover']['view']['form'], null, [
+			$recover = $this->factory->create($this->config['recover']['view']['form'], null, [
 				//Set action to recover route name and context
 				'action' => $this->generateUrl($this->config['route']['recover']['name'], $this->config['route']['recover']['context']),
 				//Without password
@@ -382,7 +382,7 @@ class UserController extends AbstractController {
 		}
 
 		//Create the LoginType form and give the proper parameters
-		$form = $this->createForm($this->config['recover']['view']['form'], $user, [
+		$form = $this->factory->create($this->config['recover']['view']['form'], $user, [
 			//Set action to recover route name and context
 			'action' => $this->generateUrl($this->config['route']['recover']['name'], $context+$this->config['route']['recover']['context']),
 			//With user disable mail
@@ -578,7 +578,7 @@ class UserController extends AbstractController {
 		$user = $reflection->newInstance('', '');
 
 		//Create the RegisterType form and give the proper parameters
-		$form = $this->createForm($this->config['register']['view']['form'], $user, [
+		$form = $this->factory->create($this->config['register']['view']['form'], $user, [
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
 			//Set civility class
