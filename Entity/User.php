@@ -30,36 +30,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	protected ?int $id;
 
 	/**
-	 * @var string
-	 */
-	protected string $mail;
-
-	/**
-	 * @var string
-	 */
-	protected string $password;
-
-	/**
-	 * @var ?string
-	 */
-	protected ?string $forename;
-
-	/**
-	 * @var ?string
-	 */
-	protected ?string $surname;
-
-	/**
-	 * @var bool
-	 */
-	protected bool $active;
-
-	/**
-	 * @var bool
-	 */
-	protected bool $enable;
-
-	/**
 	 * @var \DateTime
 	 */
 	protected \DateTime $created;
@@ -68,11 +38,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 * @var \DateTime
 	 */
 	protected \DateTime $updated;
-
-	/**
-	 * @var Civility
-	 */
-	protected ?Civility $civility;
 
 	/**
 	 * @var Doctrine\Common\Collections\Collection
@@ -90,15 +55,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 * @param bool $active The user active
 	 * @param bool $enable The user enable
 	 */
-	public function __construct(string $mail, string $password, ?Civility $civility = null, ?string $forename = null, ?string $surname = null, bool $active = false, bool $enable = true) {
+	public function __construct(protected string $mail, protected string $password, protected ?Civility $civility = null, protected ?string $forename = null, protected ?string $surname = null, protected bool $active = false, protected bool $enable = true) {
 		//Set defaults
-		$this->mail = $mail;
-		$this->password = $password;
-		$this->civility = $civility;
-		$this->forename = $forename;
-		$this->surname = $surname;
-		$this->active = $active;
-		$this->enable = $enable;
 		$this->created = new \DateTime('now');
 		$this->updated = new \DateTime('now');
 
