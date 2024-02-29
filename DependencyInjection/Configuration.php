@@ -41,6 +41,10 @@ class Configuration implements ConfigurationInterface {
 			'default' => [
 				'admin' => 'ROLE_ADMIN',
 				'civility' => 'Mister',
+				'languages' => [
+					'en_gb' => 'English'
+				],
+				'locales' => [ 'en_gb' ],
 				'group' => [ 'User' ]
 			],
 			'route' => [
@@ -150,7 +154,8 @@ class Configuration implements ConfigurationInterface {
 				->children()
 					->arrayNode('class')
 						->addDefaultsIfNotSet()
-						->ignoreExtraKeys()
+						#XXX: ignoreExtraKeys(bool $remove = true)
+						->ignoreExtraKeys(false)
 						->children()
 							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['class']['civility'])->end()
 							->scalarNode('group')->cannotBeEmpty()->defaultValue($defaults['class']['group'])->end()
@@ -159,10 +164,23 @@ class Configuration implements ConfigurationInterface {
 					->end()
 					->arrayNode('default')
 						->addDefaultsIfNotSet()
-						->ignoreExtraKeys()
+						#XXX: ignoreExtraKeys(bool $remove = true)
+						->ignoreExtraKeys(false)
 						->children()
 							->scalarNode('admin')->cannotBeEmpty()->defaultValue($defaults['default']['admin'])->end()
 							->scalarNode('civility')->cannotBeEmpty()->defaultValue($defaults['default']['civility'])->end()
+							#TODO: see if we can't prevent key normalisation with ->normalizeKeys(false)
+							->arrayNode('languages')
+								->treatNullLike([])
+								->defaultValue($defaults['default']['languages'])
+								->scalarPrototype()->end()
+							->end()
+							#TODO: see if we can't prevent key normalisation with ->normalizeKeys(false)
+							->arrayNode('locales')
+								->treatNullLike([])
+								->defaultValue($defaults['default']['locales'])
+								->scalarPrototype()->end()
+							->end()
 							->arrayNode('group')
 								->treatNullLike([])
 								->defaultValue($defaults['default']['group'])
