@@ -50,4 +50,13 @@ class RapsysUserExtension extends Extension {
 		//Set rapsysuser.version key
 		$container->setParameter($alias.'.version', RapsysUserBundle::getVersion());
 	}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * @xxx Required by kernel to load renamed alias configuration
+	 */
+	public function getAlias(): string {
+		return RapsysUserBundle::getAlias();
+	}
 }
