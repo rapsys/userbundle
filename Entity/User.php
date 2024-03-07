@@ -315,7 +315,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 				return $array;
 			},
 			//Init with empty array
-			//XXX: on registration, add each group present in rapsys_user.default.group array to user
+			//XXX: on registration, add each group present in rapsysuser.default.group array to user
 			//XXX: see vendor/rapsys/userbundle/Controller/DefaultController.php +450
 			[]
 		));
