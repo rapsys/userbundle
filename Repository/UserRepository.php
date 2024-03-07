@@ -123,7 +123,7 @@ SQL;
 				'pseudonym' => $data['pseudonym'],
 				'groups' => [],
 				'slug' => $this->slugger->slug($data['pseudonym']),
-				'link' => $this->router->generate('rapsys_user_edit', ['mail' => $short = $this->slugger->short($data['mail']), 'hash' => $this->slugger->hash($short)])
+				'link' => $this->router->generate('rapsysuser_edit', ['mail' => $short = $this->slugger->short($data['mail']), 'hash' => $this->slugger->hash($short)])
 			];
 
 			//With groups
@@ -137,7 +137,7 @@ SQL;
 					$ret[$data['id']]['groups'][$id] = [
 						'title' => $group = $this->translator->trans($titles[$k]),
 						#'slug' => $this->slugger->slug($group)
-						#'link' => $this->router->generate('rapsys_user_group_view', ['id' => $id, 'slug' => $this->slugger->short($group)])
+						#'link' => $this->router->generate('rapsysuser_group_view', ['id' => $id, 'slug' => $this->slugger->short($group)])
 					];
 				}
 			}
