@@ -11,6 +11,7 @@
 
 namespace Rapsys\UserBundle\Entity;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 
@@ -23,36 +24,30 @@ class Group {
 	/**
 	 * @var integer
 	 */
-	protected $id;
-
-	/**
-	 * @var string
-	 */
-	protected $title;
+	protected int $id;
 
 	/**
 	 * @var \DateTime
 	 */
-	protected $created;
+	protected \DateTime $created;
 
 	/**
 	 * @var \DateTime
 	 */
-	protected $updated;
+	protected \DateTime $updated;
 
 	/**
 	 * @var ArrayCollection
 	 */
-	protected $users;
+	protected Collection $users;
 
 	/**
 	 * Constructor
 	 *
 	 * @param string $title The group name
 	 */
-	public function __construct(string $title) {
+	public function __construct(protected string $title) {
 		//Set defaults
-		$this->title = $title;
 		$this->created = new \DateTime('now');
 		$this->updated = new \DateTime('now');
 		$this->users = new ArrayCollection();
@@ -85,7 +80,7 @@ class Group {
 	 *
 	 * @return string
 	 */
-	public function getTitle(): ?string {
+	public function getTitle(): string {
 		return $this->title;
 	}
 
