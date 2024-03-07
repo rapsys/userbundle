@@ -31,7 +31,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	protected ?int $id = null;
 
 	/**
-	 * Creation datetime
+	 * Create datetime
 	 */
 	protected \DateTime $created;
 
