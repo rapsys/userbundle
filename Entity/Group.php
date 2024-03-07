@@ -22,22 +22,22 @@ use Rapsys\UserBundle\Entity\User;
  */
 class Group {
 	/**
-	 * @var integer
+	 * Primary key
 	 */
-	protected int $id;
+	protected ?int $id = null;
 
 	/**
-	 * @var \DateTime
+	 * Creation datetime
 	 */
 	protected \DateTime $created;
 
 	/**
-	 * @var \DateTime
+	 * Update datetime
 	 */
 	protected \DateTime $updated;
 
 	/**
-	 * @var ArrayCollection
+	 * Users collection
 	 */
 	protected Collection $users;
 
@@ -50,6 +50,8 @@ class Group {
 		//Set defaults
 		$this->created = new \DateTime('now');
 		$this->updated = new \DateTime('now');
+
+		//Set collections
 		$this->users = new ArrayCollection();
 	}
 
@@ -58,7 +60,7 @@ class Group {
 	 *
 	 * @return integer
 	 */
-	public function getId(): int {
+	public function getId(): ?int {
 		return $this->id;
 	}
 

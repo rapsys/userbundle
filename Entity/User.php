@@ -26,22 +26,22 @@ use Rapsys\UserBundle\Entity\Group;
  */
 class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	/**
-	 * @var ?integer
+	 * Primary key
 	 */
-	protected ?int $id;
+	protected ?int $id = null;
 
 	/**
-	 * @var \DateTime
+	 * Creation datetime
 	 */
 	protected \DateTime $created;
 
 	/**
-	 * @var \DateTime
+	 * Update datetime
 	 */
 	protected \DateTime $updated;
 
 	/**
-	 * @var Doctrine\Common\Collections\Collection
+	 * Groups collection
 	 */
 	protected Collection $groups;
 
