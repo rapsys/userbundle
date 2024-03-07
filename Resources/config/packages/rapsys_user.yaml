@@ -22,10 +22,10 @@ services:
         arguments: [ [ '@security.access.role_hierarchy_voter' ] ]
     #Register default controller
     Rapsys\UserBundle\Controller\UserController:
-        arguments: [ '@user.cache', '@security.authorization_checker', '@service_container', '@doctrine', '@form.factory', '@security.user_password_hasher', '@logger', '@mailer.mailer', '@doctrine.orm.default_entity_manager', '@router', '@security.helper', '@rapsys_pack.slugger_util', '@request_stack', '@translator', '@twig' ]
+        arguments: [ '@user.cache', '@security.authorization_checker', '@service_container', '@doctrine', '@form.factory', '@security.user_password_hasher', '@logger', '@mailer.mailer', '@doctrine.orm.default_entity_manager', '@router', '@security.helper', '@rapsyspack.slugger_util', '@request_stack', '@translator', '@twig' ]
         tags: [ 'controller.service_arguments' ]
     Rapsys\UserBundle\Factory:
-        arguments: [ '@request_stack', '@router', '@rapsys_pack.slugger_util', '@translator', '%kernel.default_locale%' ]
+        arguments: [ '@request_stack', '@router', '@rapsyspack.slugger_util', '@translator', '%kernel.default_locale%' ]
     #Register Authentication success handler
     security.authentication.success_handler:
         class: 'Rapsys\UserBundle\Handler\AuthenticationSuccessHandler'
@@ -33,7 +33,7 @@ services:
     #Register Authentication failure handler
     security.authentication.failure_handler:
         class: 'Rapsys\UserBundle\Handler\AuthenticationFailureHandler'
-        arguments: [ '@http_kernel', '@security.http_utils', {}, '@logger', '@service_container', '@doctrine', '@mailer.mailer', '@router', '@rapsys_pack.slugger_util', '@request_stack', '@translator' ]
+        arguments: [ '@http_kernel', '@security.http_utils', {}, '@logger', '@service_container', '@doctrine', '@mailer.mailer', '@router', '@rapsyspack.slugger_util', '@request_stack', '@translator' ]
     #Register default logout listener
     security.logout.listener.default:
         class: 'Rapsys\UserBundle\Listener\LogoutListener'
