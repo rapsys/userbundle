@@ -12,7 +12,9 @@
 namespace Rapsys\UserBundle\Handler;
 
 use Doctrine\Persistence\ManagerRegistry;
+
 use Psr\Log\LoggerInterface;
+
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -36,6 +38,7 @@ use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use Rapsys\PackBundle\Util\SluggerUtil;
+
 use Rapsys\UserBundle\Exception\UnactivatedException;
 use Rapsys\UserBundle\RapsysUserBundle;
 
@@ -55,6 +58,8 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	];
 
 	/**
+	 * {@inheritdoc}
+	 *
 	 * @xxx Second argument will be replaced by security.firewalls.main.logout.target
 	 * @see vendor/symfony/security-bundle/DependencyInjection/SecurityExtension.php +360
 	 *
@@ -69,15 +74,13 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	 * @param SluggerUtil $slugger The slugger instance
 	 * @param RequestStack $stack The stack instance
 	 * @param TranslatorInterface $translator The translator instance
-	 *
-	 * {@inheritdoc}
 	 */
 	public function __construct(protected HttpKernelInterface $httpKernel, protected HttpUtils $httpUtils, protected array $options, protected ?LoggerInterface $logger, protected ContainerInterface $container, protected ManagerRegistry $doctrine, protected MailerInterface $mailer, protected RouterInterface $router, protected SluggerUtil $slugger, protected RequestStack $stack, protected TranslatorInterface $translator) {
 		//Call parent constructor
 		parent::__construct($httpKernel, $httpUtils, $options, $logger);
 
 		//Set config
-		$this->config = $container->getParameter(self::getAlias());
+		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
 	}
 
 	/**
@@ -100,9 +103,9 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	}
 
 	/**
-	 * This is called when an interactive authentication attempt fails
-	 *
 	 * {@inheritdoc}
+	 *
+	 * This is called when an interactive authentication attempt fails
 	 */
 	public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response {
 		//With bad credential exception
@@ -298,12 +301,5 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 
 		//Call parent function
 		return parent::onAuthenticationFailure($request, $exception);
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getAlias(): string {
-		return RapsysUserBundle::getAlias();
 	}
 }
