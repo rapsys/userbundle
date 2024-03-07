@@ -11,16 +11,29 @@
 
 namespace Rapsys\UserBundle;
 
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
+use Rapsys\UserBundle\DependencyInjection\RapsysUserExtension;
+
+/**
+ * {@inheritdoc}
+ */
 class RapsysUserBundle extends Bundle {
+	/**
+	 * {@inheritdoc}
+	 */
+	public function getContainerExtension(): ?ExtensionInterface {
+		//Return created container extension
+		return $this->createContainerExtension();
+	}
+
 	/**
 	 * Return bundle alias
 	 *
 	 * @return string The bundle alias
 	 */
-    public static function getAlias(): string {
+	public static function getAlias(): string {
 		//With namespace
 		if ($npos = strrpos(static::class, '\\')) {
 			//Set name pos
@@ -40,7 +53,17 @@ class RapsysUserBundle extends Bundle {
 			$bpos = strlen(static::class) - $npos;
 		}
 
-		//Return underscored lowercase bundle alias
-		return Container::underscore(substr(static::class, $npos, $bpos));
-    }
+		//Return lowercase bundle alias
+		return strtolower(substr(static::class, $npos, $bpos));
+	}
+
+	/**
+	 * Return bundle version
+	 *
+	 * @return string The bundle version
+	 */
+	public static function getVersion(): string {
+		//Return version
+		return '0.4.0';
+	}
 }
