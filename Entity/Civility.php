@@ -169,7 +169,7 @@ class Civility {
 	 */
 	public function preUpdate(PreUpdateEventArgs $eventArgs) {
 		//Check that we have a civility instance
-		if (($user = $eventArgs->getEntity()) instanceof Civility) {
+		if (($user = $eventArgs->getObject()) instanceof Civility) {
 			//Set updated value
 			$user->setUpdated(new \DateTime('now'));
 		}

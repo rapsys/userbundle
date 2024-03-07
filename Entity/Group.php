@@ -169,7 +169,7 @@ class Group {
 	 */
 	public function preUpdate(PreUpdateEventArgs $eventArgs) {
 		//Check that we have a group instance
-		if (($user = $eventArgs->getEntity()) instanceof Group) {
+		if (($user = $eventArgs->getObject()) instanceof Group) {
 			//Set updated value
 			$user->setUpdated(new \DateTime('now'));
 		}

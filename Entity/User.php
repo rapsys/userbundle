@@ -432,7 +432,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
 	 */
 	public function preUpdate(PreUpdateEventArgs $eventArgs) {
 		//Check that we have an user instance
-		if (($user = $eventArgs->getEntity()) instanceof User) {
+		if (($user = $eventArgs->getObject()) instanceof User) {
 			//Set updated value
 			$user->setUpdated(new \DateTime('now'));
 		}
