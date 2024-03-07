@@ -103,8 +103,8 @@ class AppKernel extends Kernel
 
 ### Step 3: Configure the Bundle
 
-Setup configuration file `config/packages/rapsys_user.yaml` with the following
-content available in `Rapsys/UserBundle/Resources/config/packages/rapsys_user.yaml`:
+Setup configuration file `config/packages/rapsysuser.yaml` with the following
+content available in `Rapsys/UserBundle/Resources/config/packages/rapsysuser.yaml`:
 
 ```yaml
 #Doctrine configuration
@@ -119,7 +119,7 @@ doctrine:
             Rapsys\UserBundle\Entity\User: 'CustomBundle\Entity\User'
 
 #RapsysUser configuration
-rapsys_user:
+rapsysuser:
     #Class replacement
     class:
         group: 'CustomBundle\Entity\Group'
@@ -137,7 +137,7 @@ rapsys_user:
 #Service configuration
 services:
     #Register security context service
-    rapsys_user.access_decision_manager:
+    rapsysuser.access_decision_manager:
         class: 'Symfony\Component\Security\Core\Authorization\AccessDecisionManager'
         public: true
         arguments: [ [ '@security.access.role_hierarchy_voter' ] ]
