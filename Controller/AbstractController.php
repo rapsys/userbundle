@@ -282,17 +282,6 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 			$parameters['locale'] = $this->locale;
 		}
 
-		/*TODO: XXX: to drop, we have title => [ 'page' => XXX, section => XXX, site => XXX ]
-		//With empty head title and section
-		if (empty($parameters['head']['title']) && !empty($parameters['section'])) {
-			//Set head title
-			$parameters['title'] = implode(' - ', [$parameters['title'], $parameters['section'], $parameters['head']['site']]);
-		//With empty head title
-		} elseif (empty($parameters['head']['title'])) {
-			//Set head title
-			$parameters['head']['title'] = implode(' - ', [$parameters['title'], $parameters['head']['site']]);
-		}*/
-
 		//Call twig render method
 		$content = $this->twig->render($view, $parameters);
 
