@@ -41,9 +41,9 @@ use Rapsys\PackBundle\Util\SluggerUtil;
 use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
- * Provides common features needed in controllers.
- *
  * {@inheritdoc}
+ *
+ * Provides common features needed in controllers.
  */
 abstract class AbstractController extends BaseAbstractController implements ServiceSubscriberInterface {
 	/**
@@ -268,9 +268,9 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	}
 
 	/**
-	 * Renders a view
-	 *
 	 * {@inheritdoc}
+	 *
+	 * Renders a view
 	 */
 	protected function render(string $view, array $parameters = [], Response $response = null): Response {
 		//Create response when null

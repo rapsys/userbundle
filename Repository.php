@@ -20,9 +20,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Rapsys\PackBundle\Util\SluggerUtil;
 
 /**
- * Repository
- *
  * {@inheritdoc}
+ *
+ * Repository
  */
 class Repository extends EntityRepository {
 	/**

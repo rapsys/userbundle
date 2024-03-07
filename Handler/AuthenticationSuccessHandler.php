@@ -37,13 +37,13 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
 	/**
 	 * Default options
 	 */
-    protected array $defaultOptions = [
-        'always_use_default_target_path' => false,
-        'default_target_path' => '/',
-        'login_path' => '/login',
-        'target_path_parameter' => '_target_path',
-        'use_referer' => false,
-    ];
+	protected array $defaultOptions = [
+		'always_use_default_target_path' => false,
+		'default_target_path' => '/',
+		'login_path' => '/login',
+		'target_path_parameter' => '_target_path',
+		'use_referer' => false,
+	];
 
 	/**
 	 * {@inheritdoc}
@@ -53,12 +53,12 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
 		$this->setOptions($options);
 	}
 
-    /**
+	/**
+	 * {@inheritdoc}
+	 *
 	 * This is called when an interactive authentication attempt succeeds
 	 *
 	 * In use_referer case it will handle correctly when login_path is a route name or path
-	 *
-	 * {@inheritdoc}
 	 */
 	public function onAuthenticationSuccess(Request $request, TokenInterface $token): Response {
 		//Set login route

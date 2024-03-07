@@ -17,11 +17,11 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
+ * {@inheritdoc}
+ *
  * This is the class that validates and merges configuration from your app/config files.
  *
  * @link http://symfony.com/doc/current/cookbook/bundles/configuration.html
- *
- * {@inheritdoc}
  */
 class Configuration implements ConfigurationInterface {
 	/**

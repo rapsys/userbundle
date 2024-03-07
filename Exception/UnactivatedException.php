@@ -14,9 +14,9 @@ namespace Rapsys\UserBundle\Exception;
 use Symfony\Component\Security\Core\Exception\AccountStatusException;
 
 /**
- * UnactivatedException is thrown when the user account is unactivated.
- *
  * {@inheritdoc}
+ *
+ * UnactivatedException is thrown when the user account is unactivated.
  */
 class UnactivatedException extends AccountStatusException {
     /**
