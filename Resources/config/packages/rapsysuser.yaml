@@ -1,0 +1,43 @@
+#XXX: needs to be commented out when using an other one with extra keys
+##Doctrine configuration
+#doctrine:
+#    #Orm configuration
+#    orm:
+#        #Replace repository factory
+#        repository_factory: 'Rapsys\UserBundle\Factory'
+
+#Framework configuration
+framework:
+    cache:
+        pools:
+            user.cache:
+                adapter: 'cache.adapter.system'
+
+#Service configuration
+services:
+    #Register security context service
+    rapsysuser.access_decision_manager:
+        class: 'Symfony\Component\Security\Core\Authorization\AccessDecisionManager'
+        public: true
+        arguments: [ [ '@security.access.role_hierarchy_voter' ] ]
+    #Register default controller
+    Rapsys\UserBundle\Controller\UserController:
+        arguments: [ '@user.cache', '@security.authorization_checker', '@service_container', '@doctrine', '@form.factory', '@security.user_password_hasher', '@logger', '@mailer.mailer', '@doctrine.orm.default_entity_manager', '@router', '@security.helper', '@rapsyspack.slugger_util', '@request_stack', '@translator', '@twig' ]
+        tags: [ 'controller.service_arguments' ]
+    Rapsys\UserBundle\Factory:
+        arguments: [ '@request_stack', '@router', '@rapsyspack.slugger_util', '@translator', '%kernel.default_locale%' ]
+    #Register Authentication success handler
+    security.authentication.success_handler:
+        class: 'Rapsys\UserBundle\Handler\AuthenticationSuccessHandler'
+        arguments: [ '@router', {} ]
+    #Register Authentication failure handler
+    security.authentication.failure_handler:
+        class: 'Rapsys\UserBundle\Handler\AuthenticationFailureHandler'
+        arguments: [ '@http_kernel', '@security.http_utils', {}, '@logger', '@service_container', '@doctrine', '@mailer.mailer', '@router', '@rapsyspack.slugger_util', '@request_stack', '@translator' ]
+    #Register default logout listener
+    security.logout.listener.default:
+        class: 'Rapsys\UserBundle\Listener\LogoutListener'
+        arguments: [ '@service_container', '/', '@router' ]
+    #Register security user checker
+    security.user_checker:
+        class: 'Rapsys\UserBundle\Checker\UserChecker'
