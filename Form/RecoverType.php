@@ -32,6 +32,6 @@ class RecoverType extends RegisterType {
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_recover';
+		return 'rapsysuser_recover';
 	}
 }

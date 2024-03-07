@@ -32,6 +32,6 @@ class ResetType extends RegisterType {
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_reset';
+		return 'rapsysuser_reset';
 	}
 }

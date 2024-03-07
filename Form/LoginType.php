@@ -32,6 +32,6 @@ class LoginType extends RegisterType {
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_login';
+		return 'rapsysuser_login';
 	}
 }

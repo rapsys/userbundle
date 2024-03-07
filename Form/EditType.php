@@ -33,6 +33,6 @@ class EditType extends RegisterType {
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_edit';
+		return 'rapsysuser_edit';
 	}
 }

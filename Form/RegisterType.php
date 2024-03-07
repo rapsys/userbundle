@@ -125,6 +125,6 @@ class RegisterType extends AbstractType {
 	 * {@inheritdoc}
 	 */
 	public function getName(): string {
-		return 'rapsys_user_register';
+		return 'rapsysuser_register';
 	}
 }
