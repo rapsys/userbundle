@@ -49,27 +49,27 @@ class Configuration implements ConfigurationInterface {
 			],
 			'route' => [
 				'confirm' => [
-					'name' => 'rapsys_user_confirm',
+					'name' => 'rapsysuser_confirm',
 					'context' => []
 				],
 				'edit' => [
-					'name' => 'rapsys_user_edit',
+					'name' => 'rapsysuser_edit',
 					'context' => []
 				],
 				'index' => [
-					'name' => 'rapsys_user_index',
+					'name' => 'rapsysuser_index',
 					'context' => []
 				],
 				'login' => [
-					'name' => 'rapsys_user_login',
+					'name' => 'rapsysuser_login',
 					'context' => []
 				],
 				'recover' => [
-					'name' => 'rapsys_user_recover',
+					'name' => 'rapsysuser_recover',
 					'context' => []
 				],
 				'register' => [
-					'name' => 'rapsys_user_register',
+					'name' => 'rapsysuser_register',
 					'context' => []
 				]
 			],
@@ -144,8 +144,8 @@ class Configuration implements ConfigurationInterface {
 		 * @link http://symfony.com/doc/current/components/config/definition.html
 		 * @link https://github.com/symfony/assetic-bundle/blob/master/DependencyInjection/Configuration.php#L63
 		 *
-		 * @see php bin/console config:dump-reference rapsys_user to dump default config
-		 * @see php bin/console debug:config rapsys_user to dump config
+		 * @see php bin/console config:dump-reference rapsysuser to dump default config
+		 * @see php bin/console debug:config rapsysuser to dump config
 		 */
 		$treeBuilder
 			//Parameters
