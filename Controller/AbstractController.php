@@ -67,6 +67,11 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	protected int $page;
 
 	/**
+	 * Request instance
+	 */
+	protected Request $request;
+
+	/**
 	 * Abstract constructor
 	 *
 	 * @param CacheInterface $cache The cache instance
