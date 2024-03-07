@@ -32,20 +32,22 @@ class RapsysUserExtension extends Extension {
 		//Process the configuration to get merged config
 		$config = $this->processConfiguration($configuration, $configs);
 
+		//Set bundle alias
+		$alias = RapsysUserBundle::getAlias();
+
 		//Detect when no user configuration is provided
 		if ($configs === [[]]) {
 			//Prepend default config
-			$container->prependExtensionConfig(self::getAlias(), $config);
+			$container->prependExtensionConfig($alias, $config);
 		}
 
 		//Save configuration in parameters
-		$container->setParameter(self::getAlias(), $config);
-	}
+		$container->setParameter($alias, $config);
 
-	/**
-	 * {@inheritdoc}
-	 */
-	public function getAlias(): string {
-		return RapsysUserBundle::getAlias();
+		//Set rapsysuser.alias key
+		$container->setParameter($alias.'.alias', $alias);
+
+		//Set rapsysuser.version key
+		$container->setParameter($alias.'.version', RapsysUserBundle::getVersion());
 	}
 }
