@@ -553,7 +553,7 @@ class UserController extends AbstractController {
 			//Log new user infos
 			$this->logger->emergency(
 				$this->translator->trans(
-					'register: mail=%mail% locale=%locale% confirm=%confirm%',
+					'register: mail=%mail% locale=%locale% confirm=%confirm% ip=%ip%',
 					[
 						'%mail%' => $postMail = $_POST['register']['mail'],
 						'%locale%' => $request->getLocale(),
@@ -565,7 +565,8 @@ class UserController extends AbstractController {
 								'hash' => $this->slugger->hash($postSmail)
 							]+$this->config['route']['confirm']['context'],
 							UrlGeneratorInterface::ABSOLUTE_URL
-						)
+						),
+						'%ip%' => $request->getClientIp()
 					]
 				)
 			);
