@@ -495,7 +495,7 @@ class UserController extends AbstractController {
 					//Create message
 					$message = (new TemplatedEmail())
 						//Set sender
-						->from(new Address($this->config['contact']['address'], $this->config['contact']['name']))
+						->from(new Address($this->config['contact']['address'], $this->translator->trans($this->config['contact']['name'])))
 						//Set recipient
 						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 						->to(new Address($context['recipient_mail'], $context['recipient_name']))
@@ -688,7 +688,7 @@ class UserController extends AbstractController {
 				//Create message
 				$message = (new TemplatedEmail())
 					//Set sender
-					->from(new Address($this->config['contact']['address'], $this->config['contact']['name']))
+					->from(new Address($this->config['contact']['address'], $this->translator->trans($this->config['contact']['name'])))
 					//Set recipient
 					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 					->to(new Address($context['recipient_mail'], $context['recipient_name']))
