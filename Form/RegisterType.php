@@ -11,8 +11,11 @@
 
 namespace Rapsys\UserBundle\Form;
 
+use Rapsys\PackBundle\Form\CaptchaType;
+
+use Rapsys\UserBundle\Entity\Civility;
+
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
-use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
@@ -24,62 +27,60 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
-use Rapsys\UserBundle\Entity\Civility;
-
-class RegisterType extends AbstractType {
+/**
+ * {@inheritdoc}
+ */
+class RegisterType extends CaptchaType {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function buildForm(FormBuilderInterface $builder, array $options): FormBuilderInterface {
-		//Create form
-		$form = $builder;
-
+	public function buildForm(FormBuilderInterface $builder, array $options): void {
 		//Add extra mail field
 		if (!empty($options['mail'])) {
-			$form->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])], 'required' => true]);
+			$builder->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])], 'required' => true]);
 		}
 
 		//Add extra password field
 		if (!empty($options['password'])) {
 			//Add password repeated field
 			if (!empty($options['password_repeated'])) {
-				$form->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]], 'required' => true]);
+				$builder->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]], 'required' => true]);
 			//Add password field
 			} else {
-				$form->add('password', PasswordType::class, ['attr' => ['placeholder' => 'Your password'], 'constraints' => [new NotBlank(['message' => 'Please provide your password'])], 'required' => true]);
+				$builder->add('password', PasswordType::class, ['attr' => ['placeholder' => 'Your password'], 'constraints' => [new NotBlank(['message' => 'Please provide your password'])], 'required' => true]);
 			}
 		}
 
 		//Add extra civility field
 		if (!empty($options['civility'])) {
-			$form->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'choice_translation_domain' => true, 'empty_data' => $options['civility_default'], 'required' => true]);
+			$builder->add('civility', EntityType::class, ['class' => $options['civility_class'], 'attr' => ['placeholder' => 'Your civility'], 'choice_translation_domain' => true, 'empty_data' => $options['civility_default'], 'required' => true]);
 		}
 
 		//Add extra forename field
 		if (!empty($options['forename'])) {
-			$form->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename']]);
+			$builder->add('forename', TextType::class, ['attr' => ['placeholder' => 'Your forename']]);
 		}
 
 		//Add extra surname field
 		if (!empty($options['surname'])) {
-			$form->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname']]);
+			$builder->add('surname', TextType::class, ['attr' => ['placeholder' => 'Your surname']]);
 		}
 
 		//Add extra active field
 		if (!empty($options['active'])) {
-			$form->add('active', CheckboxType::class, ['attr' => ['placeholder' => 'Your active']]);
+			$builder->add('active', CheckboxType::class, ['attr' => ['placeholder' => 'Your active']]);
 		}
 
 		//Add extra enable field
 		if (!empty($options['enable'])) {
-			$form->add('enable', CheckboxType::class, ['attr' => ['placeholder' => 'Your enable']]);
+			$builder->add('enable', CheckboxType::class, ['attr' => ['placeholder' => 'Your enable']]);
 		}
 
 		//Add submit
-		$form->add('submit', SubmitType::class, ['label' => 'Send', 'attr' => ['class' => 'submit']]);
+		$builder->add('submit', SubmitType::class, ['label' => 'Send', 'attr' => ['class' => 'submit']]);
 
-		//Return form
-		return $form;
+		//Call parent
+		parent::buildForm($builder, $options);
 	}
 
 	/**
