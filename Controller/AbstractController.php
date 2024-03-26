@@ -14,6 +14,10 @@ namespace Rapsys\UserBundle\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
+use Rapsys\PackBundle\Util\SluggerUtil;
+
+use Rapsys\UserBundle\RapsysUserBundle;
+
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -35,10 +39,6 @@ use Symfony\Contracts\Service\ServiceSubscriberInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use Twig\Environment;
-
-use Rapsys\PackBundle\Util\SluggerUtil;
-
-use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * {@inheritdoc}

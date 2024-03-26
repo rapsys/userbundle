@@ -11,6 +11,8 @@
 
 namespace Rapsys\UserBundle\Listener;
 
+use Rapsys\UserBundle\RapsysUserBundle;
+
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -22,8 +24,6 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
-
-use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * {@inheritdoc}

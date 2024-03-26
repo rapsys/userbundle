@@ -15,11 +15,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Repository\RepositoryFactory as RepositoryFactoryInterface;
 use Doctrine\Persistence\ObjectRepository;
 
+use Rapsys\PackBundle\Util\SluggerUtil;
+
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
-
-use Rapsys\PackBundle\Util\SluggerUtil;
 
 /**
  * This factory is used to create default repository objects for entities at runtime.

@@ -11,10 +11,10 @@
 
 namespace Rapsys\UserBundle\DependencyInjection;
 
+use Rapsys\UserBundle\RapsysUserBundle;
+
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
-
-use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * This is the class that loads and manages your bundle configuration.

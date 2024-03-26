@@ -12,11 +12,12 @@
 namespace Rapsys\UserBundle\Repository;
 
 use Doctrine\ORM\Query\ResultSetMapping;
+
+use Rapsys\UserBundle\Repository;
+
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
-
-use Rapsys\UserBundle\Repository;
 
 /**
  * UserRepository

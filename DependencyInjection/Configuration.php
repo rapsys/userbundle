@@ -11,10 +11,10 @@
 
 namespace Rapsys\UserBundle\DependencyInjection;
 
+use Rapsys\UserBundle\RapsysUserBundle;
+
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
-
-use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * {@inheritdoc}

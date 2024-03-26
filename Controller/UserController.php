@@ -12,6 +12,9 @@
 namespace Rapsys\UserBundle\Controller;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+
+use Rapsys\UserBundle\RapsysUserBundle;
+
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,8 +24,6 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
-
-use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * {@inheritdoc}

@@ -15,6 +15,11 @@ use Doctrine\Persistence\ManagerRegistry;
 
 use Psr\Log\LoggerInterface;
 
+use Rapsys\PackBundle\Util\SluggerUtil;
+
+use Rapsys\UserBundle\Exception\UnactivatedException;
+use Rapsys\UserBundle\RapsysUserBundle;
+
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -36,11 +41,6 @@ use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Http\Authentication\DefaultAuthenticationFailureHandler;
 use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Contracts\Translation\TranslatorInterface;
-
-use Rapsys\PackBundle\Util\SluggerUtil;
-
-use Rapsys\UserBundle\Exception\UnactivatedException;
-use Rapsys\UserBundle\RapsysUserBundle;
 
 /**
  * {@inheritdoc}
