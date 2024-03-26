@@ -11,10 +11,10 @@
 
 namespace Rapsys\UserBundle;
 
+use Rapsys\UserBundle\DependencyInjection\RapsysUserExtension;
+
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
-
-use Rapsys\UserBundle\DependencyInjection\RapsysUserExtension;
 
 /**
  * {@inheritdoc}
@@ -64,6 +64,6 @@ class RapsysUserBundle extends Bundle {
 	 */
 	public static function getVersion(): string {
 		//Return version
-		return '0.4.0';
+		return '0.5.0';
 	}
 }
