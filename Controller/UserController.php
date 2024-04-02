@@ -583,6 +583,8 @@ class UserController extends AbstractController {
 		$form = $this->factory->create($this->config['register']['view']['form'], $user, [
 			//Set action to register route name and context
 			'action' => $this->generateUrl($this->config['route']['register']['name'], $this->config['route']['register']['context']),
+			//Set captcha
+			'captcha' => true,
 			//Set civility class
 			'civility_class' => $this->config['class']['civility'],
 			//Set civility default

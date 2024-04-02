@@ -87,6 +87,9 @@ class RegisterType extends CaptchaType {
 	 * {@inheritdoc}
 	 */
 	public function configureOptions(OptionsResolver $resolver): void {
+		//Call parent configure options
+		parent::configureOptions($resolver);
+
 		//Set defaults
 		$resolver->setDefaults(['error_bubbling' => true, 'civility' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'password' => true, 'password_repeated' => true, 'forename' => true, 'surname' => true, 'active' => false, 'enable' => false]);
 
