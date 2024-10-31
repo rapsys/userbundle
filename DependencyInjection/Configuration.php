@@ -45,9 +45,13 @@ class Configuration implements ConfigurationInterface {
 					'en_gb' => 'English'
 				],
 				'locales' => [ 'en_gb' ],
-				'group' => [ 'User' ]
+				'group' => [ 'Guest' ]
 			],
 			'route' => [
+				'home' => [
+					'name' => 'rapsysuser',
+					'context' => []
+				],
 				'confirm' => [
 					'name' => 'rapsysuser_confirm',
 					'context' => []
@@ -73,44 +77,44 @@ class Configuration implements ConfigurationInterface {
 					'context' => []
 				]
 			],
-			'translate' => [],
+			'translate' => [ 'title' ],
 			'contact' => [
 				'address' => 'contact@example.com',
 				'name' => 'John Doe'
 			],
 			'context' => [],
 			'edit' => [
-				'admin' => ['mail' => true, 'pseudonym' => true],
+				'admin' => [ 'mail' => true ],
 				'field' => [],
-				'route' => ['index' => 'index_url'],
+				'route' => [ 'home' => 'home_url' ],
 				'view' => [
-					'name' => '@RapsysUser/form/register.html.twig',
+					'name' => '@RapsysUser/register.html.twig',
 					'edit' => 'Rapsys\UserBundle\Form\EditType',
 					'reset' => 'Rapsys\UserBundle\Form\ResetType',
-					'context' => []
+					'context' => [ 'title' => 'Edit' ]
 				]
 			],
 			'index' => [
-				'route' => ['index' => 'index_url'],
+				'route' => [ 'home' => 'home_url' ],
 				'view' => [
-					'name' => '@RapsysUser/form/index.html.twig',
-					'context' => []
+					'name' => '@RapsysUser/index.html.twig',
+					'context' => [ 'title' => 'Index' ]
 				]
 			],
 			'login' => [
-				'route' => ['index' => 'index_url'],
+				'route' => [ 'home' => 'home_url', 'recover' => 'recover_url' ],
 				'view' => [
-					'name' => '@RapsysUser/form/login.html.twig',
+					'name' => '@RapsysUser/login.html.twig',
 					'form' => 'Rapsys\UserBundle\Form\LoginType',
-					'context' => []
+					'context' => [ 'title' => 'Login' ]
 				]
 			],
 			'recover' => [
-				'route' => ['index' => 'index_url', 'recover' => 'recover_url'],
+				'route' => [ 'home' => 'home_url', 'recover' => 'recover_url' ],
 				'view' => [
-					'name' => '@RapsysUser/form/recover.html.twig',
+					'name' => '@RapsysUser/recover.html.twig',
 					'form' => 'Rapsys\UserBundle\Form\RecoverType',
-					'context' => []
+					'context' => [ 'title' => 'Recover' ]
 				],
 				'mail' => [
 					'subject' => 'Welcome back!',
@@ -122,11 +126,11 @@ class Configuration implements ConfigurationInterface {
 			'register' => [
 				'admin' => [],
 				'field' => [],
-				'route' => ['index' => 'index_url', 'confirm' => 'confirm_url'],
+				'route' => [ 'home' => 'home_url', 'confirm' => 'confirm_url' ],
 				'view' => [
-					'name' => '@RapsysUser/form/register.html.twig',
+					'name' => '@RapsysUser/register.html.twig',
 					'form' => 'Rapsys\UserBundle\Form\RegisterType',
-					'context' => []
+					'context' => [ 'title' => 'Register' ]
 				],
 				'mail' => [
 					'subject' => 'Welcome!',
@@ -202,17 +206,6 @@ class Configuration implements ConfigurationInterface {
 									->end()
 								->end()
 							->end()
-							->arrayNode('index')
-								->addDefaultsIfNotSet()
-								->children()
-									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['route']['index']['name'])->end()
-									->arrayNode('context')
-										->treatNullLike([])
-										->defaultValue($defaults['route']['index']['context'])
-										->scalarPrototype()->end()
-									->end()
-								->end()
-							->end()
 							->arrayNode('edit')
 								->addDefaultsIfNotSet()
 								->children()
@@ -220,6 +213,28 @@ class Configuration implements ConfigurationInterface {
 									->arrayNode('context')
 										->treatNullLike([])
 										->defaultValue($defaults['route']['edit']['context'])
+										->scalarPrototype()->end()
+									->end()
+								->end()
+							->end()
+							->arrayNode('home')
+								->addDefaultsIfNotSet()
+								->children()
+									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['route']['home']['name'])->end()
+									->arrayNode('context')
+										->treatNullLike([])
+										->defaultValue($defaults['route']['home']['context'])
+										->scalarPrototype()->end()
+									->end()
+								->end()
+							->end()
+							->arrayNode('index')
+								->addDefaultsIfNotSet()
+								->children()
+									->scalarNode('name')->cannotBeEmpty()->defaultValue($defaults['route']['index']['name'])->end()
+									->arrayNode('context')
+										->treatNullLike([])
+										->defaultValue($defaults['route']['index']['context'])
 										->scalarPrototype()->end()
 									->end()
 								->end()
