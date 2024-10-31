@@ -15,7 +15,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 
+use Psr\Container\ContainerInterface;
+
 use Rapsys\PackBundle\Util\SluggerUtil;
+use Rapsys\UserBundle\RapsysUserBundle;
 
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -26,6 +29,16 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Repository
  */
 class Repository extends EntityRepository {
+	/**
+	 * Alias string
+	 */
+	protected string $alias;
+
+	/**
+	 * Config array
+	 */
+	protected array $config;
+
 	/**
 	 * The table keys array
 	 *
@@ -45,14 +58,19 @@ class Repository extends EntityRepository {
 	 *
 	 * @param EntityManagerInterface $manager The EntityManagerInterface instance
 	 * @param ClassMetadata $class The ClassMetadata instance
+	 * @param ContainerInterface $container The container instance
 	 * @param RouterInterface $router The router instance
 	 * @param SluggerUtil $slugger The SluggerUtil instance
 	 * @param TranslatorInterface $translator The TranslatorInterface instance
 	 * @param string $locale The current locale
 	 */
-	public function __construct(protected EntityManagerInterface $manager, protected ClassMetadata $class, protected RouterInterface $router, protected SluggerUtil $slugger, protected TranslatorInterface $translator, protected string $locale) {
+	public function __construct(protected EntityManagerInterface $manager, protected ClassMetadata $class, protected ContainerInterface $container, protected RouterInterface $router, protected SluggerUtil $slugger, protected TranslatorInterface $translator, protected string $locale) {
 		//Call parent constructor
 		parent::__construct($manager, $class);
+
+		//Get config
+		//XXX: extracting doctrine.orm.resolve_target_entities seems too complicated and doctrine listener is unusable to get reliable target entities resolution here
+		$this->config = $container->getParameter($this->alias = RapsysUserBundle::getAlias());
 
 		//Get quote strategy
 		$qs = $manager->getConfiguration()->getQuoteStrategy();
@@ -63,10 +81,13 @@ class Repository extends EntityRepository {
 		//XXX: remember to place longer prefix before shorter to avoid strange replacings
 		$tables = [
 			//Set entities
-			'RapsysUserBundle:UserGroup' => $qs->getJoinTableName($manager->getClassMetadata('Rapsys\UserBundle\Entity\User')->getAssociationMapping('groups'), $manager->getClassMetadata('Rapsys\UserBundle\Entity\User'), $dp),
-			'RapsysUserBundle:Civility' => $qs->getTableName($manager->getClassMetadata('Rapsys\UserBundle\Entity\Civility'), $dp),
-			'RapsysUserBundle:Group' => $qs->getTableName($manager->getClassMetadata('Rapsys\UserBundle\Entity\Group'), $dp),
-			'RapsysUserBundle:User' => $qs->getTableName($manager->getClassMetadata('Rapsys\UserBundle\Entity\User'), $dp),
+			'RapsysUserBundle:UserGroup' => $qs->getJoinTableName($manager->getClassMetadata($this->config['class']['user'])->getAssociationMapping('groups'), $manager->getClassMetadata($this->config['class']['user']), $dp),
+			'RapsysUserBundle:Civility' => $qs->getTableName($manager->getClassMetadata($this->config['class']['civility']), $dp),
+			'RapsysUserBundle:Group' => $qs->getTableName($manager->getClassMetadata($this->config['class']['group']), $dp),
+			'RapsysUserBundle:User' => $qs->getTableName($manager->getClassMetadata($this->config['class']['user']), $dp),
+			//Set default group
+			//XXX: or $manager->getConnection()->quote($this->config['default']['group'][0]) ???
+			':defaultgroup' => $dp->quoteStringLiteral($this->config['default']['group'][0]),
 			//Set locale
 			//XXX: or $manager->getConnection()->quote($this->locale) ???
 			':locale' => $dp->quoteStringLiteral($this->locale),
