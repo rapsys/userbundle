@@ -638,7 +638,7 @@ class UserController extends AbstractController {
 					} else {
 						//Throw exception
 						//XXX: consider missing group as fatal
-						throw new \Exception(sprintf('Group %s listed in %s.default.group[%d] not found by title', $groupTitle, RapsysUserBundle::getAlias(), $i));
+						throw new \Exception(sprintf('Group %s listed in %s.default.group[%d] not found by title', $groupTitle, $this->alias, $i));
 					}
 				}
 
