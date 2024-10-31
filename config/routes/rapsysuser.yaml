@@ -1,10 +1,15 @@
+rapsysuser:
+    path: /
+    controller: Rapsys\UserBundle\Controller\UserController::index
+    methods: GET
+
 rapsysuser_confirm:
     path: /confirm/{hash}/{mail}
     controller: Rapsys\UserBundle\Controller\UserController::registerMail
     requirements:
         hash: '[a-zA-Z0-9=_-]+'
         mail: '[a-zA-Z0-9=_-]+'
-    methods: GET|POST
+    methods: GET
 
 rapsysuser_edit:
     path: /user/{hash}/{mail}
@@ -15,7 +20,7 @@ rapsysuser_edit:
     methods: GET|POST
 
 rapsysuser_index:
-    path: /
+    path: /user
     controller: Rapsys\UserBundle\Controller\UserController::index
     methods: GET
 
