@@ -1,0 +1,17 @@
+<footer id="rapsysuser_footer">
+	{% if alternates is defined and alternates %}
+		{% set langs = alternates|keys|filter(v => v|length == 5) %}
+		{% if langs|length > 1 %}
+			<ul>
+				{% for lang in langs %}
+					<li><a href="{{ alternates[lang].relative }}" hreflang="{{ lang|replace({'_': '-'}) }}" title="{{ alternates[lang].title }}">{{ alternates[lang].translated }}</a></li>
+				{% endfor %}
+			</ul>
+		{% else %}
+			{% set lang = langs|first %}
+			<a href="{{ alternates[lang].relative }}" hreflang="{{ lang|replace({'_': '-'}) }}" title="{{ alternates[lang].title }}">{{ alternates[lang].translated }}</a>
+		{% endif %}
+	{% else %}
+		<span>&nbsp;</span>
+	{% endif %}
+</footer>
