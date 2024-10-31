@@ -39,7 +39,7 @@ class UserController extends AbstractController {
 		//Without admin
 		if (!$this->checker->isGranted($this->config['default']['admin'])) {
 			//Throw 403
-			throw $this->createAccessDeniedException($this->translator->trans('Unable to list users'));
+			throw $this->createAccessDeniedException($this->translator->trans('Unable to list users', [], $this->alias));
 		}
 
 		//Get count
@@ -48,11 +48,11 @@ class UserController extends AbstractController {
 		//With not enough users
 		if ($this->context['count'] - $this->page * $this->limit < 0) {
 			//Throw 404
-			throw $this->createNotFoundException($this->translator->trans('Unable to find users'));
+			throw $this->createNotFoundException($this->translator->trans('Unable to find users', [], $this->alias));
 		}
 
-		//Get users
-		$this->context['users'] = $this->doctrine->getRepository($this->config['class']['user'])->findAllAsArray($this->page, $this->limit);
+		//Get users by groups
+		$this->context['groups'] = $this->doctrine->getRepository($this->config['class']['user'])->findIndexByGroupId($this->page, $this->limit);
 
 		//Render view
 		return $this->render(
@@ -75,7 +75,7 @@ class UserController extends AbstractController {
 		//With invalid hash
 		if ($hash != $this->slugger->hash($mail)) {
 			//Throw bad request
-			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash], $this->alias));
 		}
 
 		//Get mail
@@ -85,14 +85,14 @@ class UserController extends AbstractController {
 		if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
 			//Throw bad request
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail], $this->alias));
 		}
 
 		//Without existing registrant
 		if (!($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 			//Add error message mail already exists
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			$this->addFlash('error', $this->translator->trans('Account do not exists'));
+			$this->addFlash('error', $this->translator->trans('Account do not exists', [], $this->alias));
 
 			//Redirect to register view
 			return $this->redirectToRoute($this->config['route']['register']['name'], $this->config['route']['register']['context']);
@@ -108,7 +108,7 @@ class UserController extends AbstractController {
 		$this->manager->flush();
 
 		//Add error message mail already exists
-		$this->addFlash('notice', $this->translator->trans('Your account has been activated'));
+		$this->addFlash('notice', $this->translator->trans('Your account has been activated', [], $this->alias));
 
 		//Redirect to user view
 		return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']);
@@ -126,7 +126,7 @@ class UserController extends AbstractController {
 		//With invalid hash
 		if ($hash != $this->slugger->hash($mail)) {
 			//Throw bad request
-			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+			throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash], $this->alias));
 		}
 
 		//Get mail
@@ -136,14 +136,14 @@ class UserController extends AbstractController {
 		if (empty($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 			//Throw not found
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			throw $this->createNotFoundException($this->translator->trans('Unable to find account'));
+			throw $this->createNotFoundException($this->translator->trans('Unable to find account', [], $this->alias));
 		}
 
 		//Prevent access when not admin, user is not guest and not currently logged user
 		if (!$this->checker->isGranted($this->config['default']['admin']) && $user != $this->security->getUser() || !$this->checker->isGranted('IS_AUTHENTICATED_FULLY')) {
 			//Throw access denied
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user'));
+			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user', [], $this->alias));
 		}
 
 		//Create the EditType form and give the proper parameters
@@ -154,8 +154,14 @@ class UserController extends AbstractController {
 			'civility_class' => $this->config['class']['civility'],
 			//Set civility default
 			'civility_default' => $this->doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
+			//Disable mail
+			'mail' => $this->checker->isGranted('ROLE_ADMIN'),
+			//Disable password
+			'password' => false,
 			//Set method
-			'method' => 'POST'
+			'method' => 'POST',
+			//Set domain
+			'translation_domain' => $this->alias
 		]+($this->checker->isGranted($this->config['default']['admin'])?$this->config['edit']['admin']:$this->config['edit']['field']));
 
 		//With admin role
@@ -165,7 +171,9 @@ class UserController extends AbstractController {
 				//Set action to edit route name and context
 				'action' => $this->generateUrl($this->config['route']['edit']['name'], ['mail' => $smail, 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']),
 				//Set method
-				'method' => 'POST'
+				'method' => 'POST',
+				//Set domain
+				'translation_domain' => $this->alias
 			]);
 
 			//With post method
@@ -188,7 +196,7 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add notice
-					$this->addFlash('notice', $this->translator->trans('Account password updated'));
+					$this->addFlash('notice', $this->translator->trans('Account password updated', [], $this->alias));
 
 					//Redirect to cleanup the form
 					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $this->slugger->short($mail), 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']);
@@ -218,21 +226,21 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add notice
-					$this->addFlash('notice', $this->translator->trans('Account updated'));
+					$this->addFlash('notice', $this->translator->trans('Account updated', [], $this->alias));
 
 					//Redirect to cleanup the form
 					return $this->redirectToRoute($this->config['route']['edit']['name'], ['mail' => $smail = $this->slugger->short($mail), 'hash' => $this->slugger->hash($smail)]+$this->config['route']['edit']['context']);
 				//Catch double slug or mail
 				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$this->addFlash('error', $this->translator->trans('Account already exists'));
+					$this->addFlash('error', $this->translator->trans('Account already exists', [], $this->alias));
 				}
 			}
 		//Without admin role
 		//XXX: prefer a reset on login to force user unspam action
 		} elseif (!$this->checker->isGranted($this->config['default']['admin'])) {
 			//Add notice
-			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
+			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure', [], $this->alias));
 		}
 
 		//Render view
@@ -240,7 +248,7 @@ class UserController extends AbstractController {
 			//Template
 			$this->config['edit']['view']['name'],
 			//Context
-			['edit' => $edit->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['edit']['view']['context']
+			['register' => $edit->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['edit']['view']['context']
 		);
 	}
 
@@ -259,7 +267,9 @@ class UserController extends AbstractController {
 			//Set action to login route name and context
 			'action' => $this->generateUrl($this->config['route']['login']['name'], $this->config['route']['login']['context']),
 			//Set method
-			'method' => 'POST'
+			'method' => 'POST',
+			//Set domain
+			'translation_domain' => $this->alias
 		]);
 
 		//Init context
@@ -270,7 +280,7 @@ class UserController extends AbstractController {
 			//With invalid hash
 			if ($hash != $this->slugger->hash($mail)) {
 				//Throw bad request
-				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash], $this->alias));
 			}
 
 			//Get mail
@@ -279,7 +289,7 @@ class UserController extends AbstractController {
 			//Without valid mail
 			if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
 				//Throw bad request
-				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail], $this->alias));
 			}
 
 			//Prefilled mail
@@ -292,7 +302,7 @@ class UserController extends AbstractController {
 		//Get the login error if there is one
 		if ($error = $authenticationUtils->getLastAuthenticationError()) {
 			//Get translated error
-			$error = $this->translator->trans($error->getMessageKey());
+			$error = $this->translator->trans($error->getMessageKey(), [], $this->alias);
 
 			//Add error message to mail field
 			$login->get('mail')->addError(new FormError($error));
@@ -304,7 +314,9 @@ class UserController extends AbstractController {
 				//Without password
 				'password' => false,
 				//Set method
-				'method' => 'POST'
+				'method' => 'POST',
+				//Set domain
+				'translation_domain' => $this->alias
 			]);
 
 			//Get recover mail entity
@@ -312,13 +324,13 @@ class UserController extends AbstractController {
 				//Set mail from login form
 				->setData($login->get('mail')->getData())
 				//Add recover error
-				->addError(new FormError($this->translator->trans('Use this form to recover your account')));
+				->addError(new FormError($this->translator->trans('Use this form to recover your account', [], $this->alias)));
 
 			//Add recover form to context
 			$context['recover'] = $recover->createView();
 		} else {
 			//Add notice
-			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure'));
+			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure', [], $this->alias));
 		}
 
 		//Render view
@@ -351,7 +363,7 @@ class UserController extends AbstractController {
 			//With invalid hash
 			if ($hash != $this->slugger->hash($mail.$pass)) {
 				//Throw bad request
-				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash]));
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'hash', '%value%' => $hash], $this->alias));
 			}
 
 			//Get mail
@@ -361,21 +373,21 @@ class UserController extends AbstractController {
 			if (filter_var($mail, FILTER_VALIDATE_EMAIL) === false) {
 				//Throw bad request
 				//XXX: prevent slugger reverse engineering by not displaying decoded mail
-				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail]));
+				throw new BadRequestHttpException($this->translator->trans('Invalid %field% field: %value%', ['%field%' => 'mail', '%value%' => $smail], $this->alias));
 			}
 
 			//With existing subscriber
 			if (empty($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 				//Throw not found
 				//XXX: prevent slugger reverse engineering by not displaying decoded mail
-				throw $this->createNotFoundException($this->translator->trans('Unable to find account'));
+				throw $this->createNotFoundException($this->translator->trans('Unable to find account', [], $this->alias));
 			}
 
 			//With unmatched pass
 			if ($pass != $this->slugger->hash($user->getPassword())) {
 				//Throw not found
 				//XXX: prevent use of outdated recover link
-				throw $this->createNotFoundException($this->translator->trans('Outdated recover link'));
+				throw $this->createNotFoundException($this->translator->trans('Outdated recover link', [], $this->alias));
 			}
 
 			//Set context
@@ -391,7 +403,9 @@ class UserController extends AbstractController {
 			//With user enable password
 			'password' => ($user !== null),
 			//Set method
-			'method' => 'POST'
+			'method' => 'POST',
+			//Set domain
+			'translation_domain' => $this->alias
 		]);
 
 		//With post method
@@ -422,7 +436,7 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add notice
-					$this->addFlash('notice', $this->translator->trans('Account password updated'));
+					$this->addFlash('notice', $this->translator->trans('Account password updated', [], $this->alias));
 
 					//Redirect to user login
 					return $this->redirectToRoute($this->config['route']['login']['name'], ['mail' => $smail, 'hash' => $this->slugger->hash($smail)]+$this->config['route']['login']['context']);
@@ -479,7 +493,7 @@ class UserController extends AbstractController {
 						} while(next($keys));
 
 						//Set translation
-						$current = $this->translator->trans($current);
+						$current = $this->translator->trans($current, [], $this->alias);
 
 						//Remove reference
 						unset($current);
@@ -489,14 +503,15 @@ class UserController extends AbstractController {
 					$context['subject'] = $subject = ucfirst(
 						$this->translator->trans(
 							$this->config['recover']['mail']['subject'],
-							$this->slugger->flatten($context, null, '.', '%', '%')
+							$this->slugger->flatten($context, null, '.', '%', '%'),
+							$this->alias
 						)
 					);
 
 					//Create message
 					$message = (new TemplatedEmail())
 						//Set sender
-						->from(new Address($this->config['contact']['address'], $this->translator->trans($this->config['contact']['name'])))
+						->from(new Address($this->config['contact']['address'], $this->translator->trans($this->config['contact']['name'], [], $this->alias)))
 						//Set recipient
 						//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 						->to(new Address($context['recipient_mail'], $context['recipient_name']))
@@ -517,17 +532,17 @@ class UserController extends AbstractController {
 						$this->mailer->send($message);
 
 						//Add notice
-						$this->addFlash('notice', $this->translator->trans('Your recovery mail has been sent, to retrieve your account follow the recuperate link inside'));
+						$this->addFlash('notice', $this->translator->trans('Your recovery mail has been sent, to retrieve your account follow the recuperate link inside', [], $this->alias));
 
 						//Add junk warning
-						$this->addFlash('warning', $this->translator->trans('If you did not receive a recovery mail, check your Spam or Junk mail folder'));
+						$this->addFlash('warning', $this->translator->trans('If you did not receive a recovery mail, check your Spam or Junk mail folder', [], $this->alias));
 
 						//Redirect on the same route with sent=1 to cleanup form
 						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'), 302);
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
-						$form->get('mail')->addError(new FormError($this->translator->trans('Unable to reach account')));
+						$form->get('mail')->addError(new FormError($this->translator->trans('Unable to reach account', [], $this->alias)));
 					}
 				}
 			}
@@ -568,7 +583,8 @@ class UserController extends AbstractController {
 							UrlGeneratorInterface::ABSOLUTE_URL
 						),
 						'%ip%' => $request->getClientIp()
-					]
+					],
+					$this->alias
 				)
 			);
 		}
@@ -590,7 +606,9 @@ class UserController extends AbstractController {
 			//Set civility default
 			'civility_default' => $this->doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
 			//Set method
-			'method' => 'POST'
+			'method' => 'POST',
+			//Set domain
+			'translation_domain' => $this->alias
 		]+($this->checker->isGranted($this->config['default']['admin'])?$this->config['register']['admin']:$this->config['register']['field']));
 
 		//With post method
@@ -674,7 +692,7 @@ class UserController extends AbstractController {
 					} while(next($keys));
 
 					//Set translation
-					$current = $this->translator->trans($current);
+					$current = $this->translator->trans($current, [], $this->alias);
 
 					//Remove reference
 					unset($current);
@@ -684,14 +702,15 @@ class UserController extends AbstractController {
 				$context['subject'] = $subject = ucfirst(
 					$this->translator->trans(
 						$this->config['register']['mail']['subject'],
-						$this->slugger->flatten($context, null, '.', '%', '%')
+						$this->slugger->flatten($context, null, '.', '%', '%'),
+						$this->alias
 					)
 				);
 
 				//Create message
 				$message = (new TemplatedEmail())
 					//Set sender
-					->from(new Address($this->config['contact']['address'], $this->translator->trans($this->config['contact']['name'])))
+					->from(new Address($this->config['contact']['address'], $this->translator->trans($this->config['contact']['name'], [], $this->alias)))
 					//Set recipient
 					//XXX: remove the debug set in vendor/symfony/mime/Address.php +46
 					->to(new Address($context['recipient_mail'], $context['recipient_name']))
@@ -711,7 +730,7 @@ class UserController extends AbstractController {
 					$this->manager->flush();
 
 					//Add error message mail already exists
-					$this->addFlash('notice', $this->translator->trans('Account created'));
+					$this->addFlash('notice', $this->translator->trans('Account created', [], $this->alias));
 
 					//Try sending message
 					//XXX: mail delivery may silently fail
@@ -724,12 +743,12 @@ class UserController extends AbstractController {
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
-						$form->get('mail')->addError(new FormError($this->translator->trans('Unable to reach account')));
+						$form->get('mail')->addError(new FormError($this->translator->trans('Unable to reach account', [], $this->alias)));
 					}
 				//Catch double subscription
 				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$this->addFlash('error', $this->translator->trans('Account already exists'));
+					$this->addFlash('error', $this->translator->trans('Account already exists', [], $this->alias));
 				}
 			}
 		}
