@@ -54,31 +54,38 @@ SQL;
 	}
 
 	/**
-	 * Find all users as array
+	 * Find all users grouped by translated group
 	 *
 	 * @param integer $page The page
 	 * @param integer $count The count
-	 * @return array The users sorted by id
+	 * @return array The user keyed by group and id
 	 */
-	public function findAllAsArray(int $page, int $count): array {
+	public function findIndexByGroupId(int $page, int $count): array {
 		//Set the request
 		$req = <<<SQL
 SELECT
-	u.id,
-	u.mail,
-	u.forename,
-	u.surname,
-	CONCAT_WS(" ", u.forename, u.surname) AS pseudonym,
-	c.id AS c_id,
-	c.title AS c_title,
-	GROUP_CONCAT(g.id ORDER BY g.id SEPARATOR "\\n") AS g_ids,
-	GROUP_CONCAT(g.title ORDER BY g.id SEPARATOR "\\n") AS g_titles
-FROM RapsysUserBundle:User AS u
-JOIN RapsysUserBundle:UserGroup AS gu ON (gu.user_id = u.id)
-JOIN RapsysUserBundle:Group AS g ON (g.id = gu.group_id)
-JOIN RapsysUserBundle:Civility AS c ON (c.id = u.civility_id)
-GROUP BY u.id
-ORDER BY u.id ASC
+	t.id,
+	t.mail,
+	t.forename,
+	t.surname,
+	t.g_id,
+	t.g_title
+FROM (
+	SELECT
+		u.id,
+		u.mail,
+		u.forename,
+		u.surname,
+		IFNULL(g.id, :guestid) AS g_id,
+		IFNULL(g.title, :guesttitle) AS g_title
+	FROM RapsysUserBundle:User AS u
+	LEFT JOIN RapsysUserBundle:UserGroup AS gu ON (gu.user_id = u.id)
+	LEFT JOIN RapsysUserBundle:Group AS g ON (g.id = gu.group_id)
+	ORDER BY NULL
+	LIMIT 0, :limit
+) AS t
+GROUP BY t.g_id, t.id
+ORDER BY t.g_id DESC, t.id ASC
 LIMIT :offset, :count
 SQL;
 
@@ -86,7 +93,7 @@ SQL;
 		$req = $this->replace($req);
 
 		//Get result set mapping instance
-		//XXX: DEBUG: see ../blog.orig/src/Rapsys/UserBundle/Repository/ArticleRepository.php
+		//XXX: DEBUG: see ../blog.orig/src/Rapsys/BlogBundle/Repository/ArticleRepository.php
 		$rsm = new ResultSetMapping();
 
 		//Declare all fields
@@ -96,13 +103,8 @@ SQL;
 			->addScalarResult('mail', 'mail', 'string')
 			->addScalarResult('forename', 'forename', 'string')
 			->addScalarResult('surname', 'surname', 'string')
-			->addScalarResult('pseudonym', 'pseudonym', 'string')
-			->addScalarResult('c_id', 'c_id', 'integer')
-			->addScalarResult('c_title', 'c_title', 'string')
-			//XXX: is a string because of \n separator
-			->addScalarResult('g_ids', 'g_ids', 'string')
-			//XXX: is a string because of \n separator
-			->addScalarResult('g_titles', 'g_titles', 'string');
+			->addScalarResult('g_id', 'g_id', 'integer')
+			->addScalarResult('g_title', 'g_title', 'string');
 
 		//Fetch result
 		$res = $this->_em
@@ -116,32 +118,22 @@ SQL;
 
 		//Process result
 		foreach($res as $data) {
+			//Get translated group
+			$group = $this->translator->trans($data['g_title'], [], $this->alias);
+
+			//Init group subarray
+			if (!isset($ret[$group])) {
+				$ret[$group] = [];
+			}
+
 			//Set data
-			$ret[$data['id']] = [
+			$ret[$group][$data['id']] = [
 				'mail' => $data['mail'],
 				'forename' => $data['forename'],
 				'surname' => $data['surname'],
-				'pseudonym' => $data['pseudonym'],
-				'groups' => [],
-				'slug' => $this->slugger->slug($data['pseudonym']),
-				'link' => $this->router->generate('rapsysuser_edit', ['mail' => $short = $this->slugger->short($data['mail']), 'hash' => $this->slugger->hash($short)])
+				//Milonga Raphaël exception
+				'edit' => $this->router->generate('rapsysuser_edit', ['mail' => $short = $this->slugger->short($data['mail']), 'hash' => $this->slugger->hash($short)])
 			];
-
-			//With groups
-			if (!empty($data['g_ids'])) {
-				//Set titles
-				$titles = explode("\n", $data['g_titles']);
-
-				//Iterate on each group
-				foreach(explode("\n", $data['g_ids']) as $k => $id) {
-					//Add group
-					$ret[$data['id']]['groups'][$id] = [
-						'title' => $group = $this->translator->trans($titles[$k]),
-						#'slug' => $this->slugger->slug($group)
-						#'link' => $this->router->generate('rapsysuser_group_view', ['id' => $id, 'slug' => $this->slugger->short($group)])
-					];
-				}
-			}
 		}
 
 		//Send result
