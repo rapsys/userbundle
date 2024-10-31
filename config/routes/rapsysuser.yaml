@@ -5,7 +5,7 @@ rapsysuser:
 
 rapsysuser_confirm:
     path: /confirm/{hash}/{mail}
-    controller: Rapsys\UserBundle\Controller\UserController::registerMail
+    controller: Rapsys\UserBundle\Controller\UserController::confirm
     requirements:
         hash: '[a-zA-Z0-9=_-]+'
         mail: '[a-zA-Z0-9=_-]+'
