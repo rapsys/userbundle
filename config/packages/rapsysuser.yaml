@@ -11,6 +11,7 @@ framework:
     cache:
         pools:
             user.cache:
+                # Set user cache pool with system adapter
                 adapter: 'cache.adapter.system'
 
 #Service configuration
@@ -24,8 +25,13 @@ services:
     Rapsys\UserBundle\Controller\UserController:
         arguments: [ '@user.cache', '@security.authorization_checker', '@service_container', '@doctrine', '@form.factory', '@security.user_password_hasher', '@logger', '@mailer.mailer', '@doctrine.orm.default_entity_manager', '@router', '@security.helper', '@rapsyspack.slugger_util', '@request_stack', '@translator', '@twig' ]
         tags: [ 'controller.service_arguments' ]
+    #Register repository factory
     Rapsys\UserBundle\Factory:
-        arguments: [ '@request_stack', '@router', '@rapsyspack.slugger_util', '@translator', '%kernel.default_locale%' ]
+        arguments: [ '@service_container', '@request_stack', '@router', '@rapsyspack.slugger_util', '@translator', '%kernel.default_locale%' ]
+    # Register user fixture
+    Rapsys\UserBundle\Fixture\UserFixture:
+        arguments: [ '@service_container', '@security.user_password_hasher' ]
+        tags: [ 'doctrine.fixture.orm' ]
     #Register Authentication success handler
     security.authentication.success_handler:
         class: 'Rapsys\UserBundle\Handler\AuthenticationSuccessHandler'
