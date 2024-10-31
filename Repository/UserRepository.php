@@ -76,8 +76,8 @@ FROM (
 		u.mail,
 		u.forename,
 		u.surname,
-		IFNULL(g.id, :guestid) AS g_id,
-		IFNULL(g.title, :guesttitle) AS g_title
+		IFNULL(g.id, 0) AS g_id,
+		IFNULL(g.title, :defaultgroup) AS g_title
 	FROM RapsysUserBundle:User AS u
 	LEFT JOIN RapsysUserBundle:UserGroup AS gu ON (gu.user_id = u.id)
 	LEFT JOIN RapsysUserBundle:Group AS g ON (g.id = gu.group_id)
@@ -103,7 +103,6 @@ SQL;
 			->addScalarResult('mail', 'mail', 'string')
 			->addScalarResult('forename', 'forename', 'string')
 			->addScalarResult('surname', 'surname', 'string')
-			->addScalarResult('g_id', 'g_id', 'integer')
 			->addScalarResult('g_title', 'g_title', 'string');
 
 		//Fetch result
