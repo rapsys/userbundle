@@ -47,6 +47,11 @@ use Twig\Environment;
  */
 abstract class AbstractController extends BaseAbstractController implements ServiceSubscriberInterface {
 	/**
+	 * Alias string
+	 */
+	protected string $alias;
+
+	/**
 	 * Config array
 	 */
 	protected array $config;
@@ -93,7 +98,7 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	 */
 	public function __construct(protected CacheInterface $cache, protected AuthorizationCheckerInterface $checker, protected ContainerInterface $container, protected ManagerRegistry $doctrine, protected FormFactoryInterface $factory, protected UserPasswordHasherInterface $hasher, protected LoggerInterface $logger, protected MailerInterface $mailer, protected EntityManagerInterface $manager, protected RouterInterface $router, protected Security $security, protected SluggerUtil $slugger, protected RequestStack $stack, protected TranslatorInterface $translator, protected Environment $twig, protected int $limit = 5) {
 		//Retrieve config
-		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
+		$this->config = $container->getParameter($this->alias = RapsysUserBundle::getAlias());
 
 		//Get current request
 		$this->request = $stack->getCurrentRequest();
@@ -198,7 +203,7 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 								}
 
 								//Translate tmp value
-								$tmp = $this->translator->trans($tmp);
+								$tmp = $this->translator->trans($tmp, [], $this->alias);
 
 								//Iterate on keys
 								foreach(array_reverse($keys) as $curkey) {
@@ -223,7 +228,7 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 
 								//Iterate on other locales
 								foreach(array_diff($locales, [$locale]) as $other) {
-									$titles[$other] = $this->translator->trans($this->config['default']['languages'][$locale], [], null, $other);
+									$titles[$other] = $this->translator->trans($this->config['default']['languages'][$locale], [], $this->alias, $other);
 								}
 
 								//Retrieve route matching path
@@ -239,13 +244,14 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 								if ($locale == $this->locale) {
 									//Set locale locales context
 									$this->config[$tag][$view]['context']['canonical'] = $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL);
+									$this->config[$tag][$view]['context']['self_url'] = $this->router->generate($name, ['_locale' => $locale]+$route);
 								} else {
 									//Set locale locales context
 									$this->config[$tag][$view]['context']['alternates'][$locale] = [
 										'absolute' => $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
 										'relative' => $this->router->generate($name, ['_locale' => $locale]+$route),
 										'title' => implode('/', $titles),
-										'translated' => $this->translator->trans($this->config['default']['languages'][$locale], [], null, $locale)
+										'translated' => $this->translator->trans($this->config['default']['languages'][$locale], [], $this->alias, $locale)
 									];
 								}
 
@@ -256,7 +262,7 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 										'absolute' => $this->router->generate($name, ['_locale' => $locale]+$route, UrlGeneratorInterface::ABSOLUTE_URL),
 										'relative' => $this->router->generate($name, ['_locale' => $locale]+$route),
 										'title' => implode('/', $titles),
-										'translated' => $this->translator->trans($this->config['default']['languages'][$locale], [], null, $locale)
+										'translated' => $this->translator->trans($this->config['default']['languages'][$locale], [], $this->alias, $locale)
 									];
 								}
 							}
