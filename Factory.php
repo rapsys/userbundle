@@ -15,6 +15,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Repository\RepositoryFactory as RepositoryFactoryInterface;
 use Doctrine\Persistence\ObjectRepository;
 
+use Psr\Container\ContainerInterface;
+
 use Rapsys\PackBundle\Util\SluggerUtil;
 
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -24,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * This factory is used to create default repository objects for entities at runtime.
  */
-final class Factory implements RepositoryFactoryInterface {
+class Factory implements RepositoryFactoryInterface {
 	/**
 	 * The list of EntityRepository instances
 	 */
@@ -33,13 +35,14 @@ final class Factory implements RepositoryFactoryInterface {
 	/**
 	 * Initializes a new RepositoryFactory instance
 	 *
+	 * @param ContainerInterface $container The container instance
 	 * @param RequestStack $request The request stack
 	 * @param RouterInterface $router The router instance
 	 * @param SluggerUtil $slugger The SluggerUtil instance
 	 * @param TranslatorInterface $translator The TranslatorInterface instance
 	 * @param string $locale The current locale
 	 */
-	public function __construct(private RequestStack $request, private RouterInterface $router, private SluggerUtil $slugger, private TranslatorInterface $translator, private string $locale) {
+	public function __construct(private ContainerInterface $container, private RequestStack $request, private RouterInterface $router, private SluggerUtil $slugger, private TranslatorInterface $translator, private string $locale) {
 	}
 
 	/**
@@ -65,7 +68,7 @@ final class Factory implements RepositoryFactoryInterface {
 	 * @param EntityManagerInterface $entityManager The EntityManager instance.
 	 * @param string $entityName The name of the entity.
 	 */
-	private function createRepository(EntityManagerInterface $entityManager, string $entityName): ObjectRepository {
+	protected function createRepository(EntityManagerInterface $entityManager, string $entityName): ObjectRepository {
 		//Get class metadata
 		$metadata = $entityManager->getClassMetadata($entityName);
 
@@ -77,7 +80,7 @@ final class Factory implements RepositoryFactoryInterface {
 		$this->locale = $this->request->getCurrentRequest()?->getLocale() ?? $this->locale;
 
 		//Return repository class instance
-		//XXX: router, slugger, translator and locale arguments will be ignored by default
-		return new $repositoryClass($entityManager, $metadata, $this->router, $this->slugger, $this->translator, $this->locale);
+		//XXX: container, router, slugger, translator and locale arguments will be ignored by default
+		return new $repositoryClass($entityManager, $metadata, $this->container, $this->router, $this->slugger, $this->translator, $this->locale);
 	}
 }
