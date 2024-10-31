@@ -47,6 +47,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 	/**
+	 * Alias string
+	 */
+	protected string $alias;
+
+	/**
 	 * Config array
 	 */
 	protected array $config;
@@ -80,7 +85,7 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 		parent::__construct($httpKernel, $httpUtils, $options, $logger);
 
 		//Set config
-		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
+		$this->config = $container->getParameter($this->alias = RapsysUserBundle::getAlias());
 	}
 
 	/**
@@ -187,7 +192,7 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 			//With not enabled user
 			} elseif ($parent instanceof DisabledException) {
 				//Add error message account is not enabled
-				$this->addFlash('error', $this->translator->trans('Account not enabled'));
+				$this->addFlash('error', $this->translator->trans('Account not enabled', [], $this->alias));
 
 				//Redirect on the same route with sent=1 to cleanup form
 				return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
@@ -246,7 +251,7 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 					} while(next($keys));
 
 					//Set translation
-					$current = $this->translator->trans($current);
+					$current = $this->translator->trans($current, [], $this->alias);
 
 					//Remove reference
 					unset($current);
@@ -256,7 +261,8 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 				$context['subject'] = $subject = ucfirst(
 					$this->translator->trans(
 						$this->config['register']['mail']['subject'],
-						$this->slugger->flatten($context, null, '.', '%', '%')
+						$this->slugger->flatten($context, null, '.', '%', '%'),
+						$this->alias
 					)
 				);
 
@@ -285,14 +291,14 @@ class AuthenticationFailureHandler extends DefaultAuthenticationFailureHandler {
 				//Catch obvious transport exception
 				} catch(TransportExceptionInterface $e) {
 					//Add error message mail unreachable
-					$this->addFlash('error', $this->translator->trans('Unable to reach account'));
+					$this->addFlash('error', $this->translator->trans('Unable to reach account', [], $this->alias));
 				}
 
 				//Add notice
-				$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account follow the confirmation link inside'));
+				$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account follow the confirmation link inside', [], $this->alias));
 
 				//Add junk warning
-				$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folder'));
+				$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folder', [], $this->alias));
 
 				//Redirect on the same route with sent=1 to cleanup form
 				return new RedirectResponse($this->router->generate($request->get('_route'), $request->get('_route_params')), 302);
