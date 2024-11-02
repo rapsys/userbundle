@@ -77,7 +77,7 @@ class Configuration implements ConfigurationInterface {
 					'context' => []
 				]
 			],
-			'translate' => [ 'title' ],
+			'translate' => [ 'site', 'title' ],
 			'contact' => [
 				'address' => 'contact@example.com',
 				'name' => 'John Doe'
@@ -117,7 +117,7 @@ class Configuration implements ConfigurationInterface {
 					'context' => [ 'title' => 'Recover' ]
 				],
 				'mail' => [
-					'subject' => 'Welcome back!',
+					'subject' => 'Welcome back to %%site%%!',
 					'html' => '@RapsysUser/mail/recover.html.twig',
 					'text' => '@RapsysUser/mail/recover.text.twig',
 					'context' => []
@@ -133,7 +133,7 @@ class Configuration implements ConfigurationInterface {
 					'context' => [ 'title' => 'Register' ]
 				],
 				'mail' => [
-					'subject' => 'Welcome!',
+					'subject' => 'Welcome to %%site%%!',
 					'html' => '@RapsysUser/mail/register.html.twig',
 					'text' => '@RapsysUser/mail/register.text.twig',
 					'context' => []
