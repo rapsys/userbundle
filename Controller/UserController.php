@@ -92,7 +92,7 @@ class UserController extends AbstractController {
 		if (!($user = $this->doctrine->getRepository($this->config['class']['user'])->findOneByMail($mail))) {
 			//Add error message mail already exists
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
-			$this->addFlash('error', $this->translator->trans('Account do not exists', [], $this->alias));
+			$this->addFlash('error', $this->translator->trans('The account do not exists', [], $this->alias));
 
 			//Redirect to register view
 			return $this->redirectToRoute($this->config['route']['register']['name'], $this->config['route']['register']['context']);
@@ -233,7 +233,7 @@ class UserController extends AbstractController {
 				//Catch double slug or mail
 				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$this->addFlash('error', $this->translator->trans('Account already exists', [], $this->alias));
+					$this->addFlash('error', $this->translator->trans('The account already exists', [], $this->alias));
 				}
 			}
 		//Without admin role
@@ -248,7 +248,7 @@ class UserController extends AbstractController {
 			//Template
 			$this->config['edit']['view']['name'],
 			//Context
-			['register' => $edit->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['edit']['view']['context']
+			['register' => $edit->createView()]+$this->config['edit']['view']['context']
 		);
 	}
 
@@ -338,7 +338,7 @@ class UserController extends AbstractController {
 			//Template
 			$this->config['login']['view']['name'],
 			//Context
-			['login' => $login->createView(), 'disabled' => $request->query->get('disabled', 0), 'sent' => $request->query->get('sent', 0)]+$context+$this->config['login']['view']['context']
+			['login' => $login->createView(), 'disabled' => $request->query->get('disabled', 0)]+$context+$this->config['login']['view']['context']
 		);
 	}
 
@@ -473,32 +473,6 @@ class UserController extends AbstractController {
 						}
 					}
 
-					//Iterate on keys to translate
-					foreach($this->config['translate'] as $translate) {
-						//Extract keys
-						$keys = explode('.', $translate);
-
-						//Set current
-						$current =& $context;
-
-						//Iterate on each subkey
-						do {
-							//Skip unset translation keys
-							if (!isset($current[current($keys)])) {
-								continue(2);
-							}
-
-							//Set current to subkey
-							$current =& $current[current($keys)];
-						} while(next($keys));
-
-						//Set translation
-						$current = $this->translator->trans($current, [], $this->alias);
-
-						//Remove reference
-						unset($current);
-					}
-
 					//Translate subject
 					$context['subject'] = $subject = ucfirst(
 						$this->translator->trans(
@@ -525,20 +499,23 @@ class UserController extends AbstractController {
 						//Set context
 						->context($context);
 
+					//Add created notice
+					$this->addFlash('notice', $this->translator->trans('Account recovered', [], $this->alias));
+
 					//Try sending message
 					//XXX: mail delivery may silently fail
 					try {
 						//Send message
 						$this->mailer->send($message);
 
-						//Add notice
+						//Add sent notice
 						$this->addFlash('notice', $this->translator->trans('Your recovery mail has been sent, to retrieve your account follow the recuperate link inside', [], $this->alias));
 
 						//Add junk warning
 						$this->addFlash('warning', $this->translator->trans('If you did not receive a recovery mail, check your Spam or Junk mail folder', [], $this->alias));
 
-						//Redirect on the same route with sent=1 to cleanup form
-						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'), 302);
+						//Redirect on home route to cleanup form
+						return $this->redirectToRoute($this->config['route']['home']['name'], $this->config['route']['home']['context']);
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
@@ -553,7 +530,7 @@ class UserController extends AbstractController {
 			//Template
 			$this->config['recover']['view']['name'],
 			//Context
-			['recover' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['recover']['view']['context']
+			['recover' => $form->createView()]+$this->config['recover']['view']['context']
 		);
 	}
 
@@ -672,32 +649,6 @@ class UserController extends AbstractController {
 					}
 				}
 
-				//Iterate on keys to translate
-				foreach($this->config['translate'] as $translate) {
-					//Extract keys
-					$keys = explode('.', $translate);
-
-					//Set current
-					$current =& $context;
-
-					//Iterate on each subkey
-					do {
-						//Skip unset translation keys
-						if (!isset($current[current($keys)])) {
-							continue(2);
-						}
-
-						//Set current to subkey
-						$current =& $current[current($keys)];
-					} while(next($keys));
-
-					//Set translation
-					$current = $this->translator->trans($current, [], $this->alias);
-
-					//Remove reference
-					unset($current);
-				}
-
 				//Translate subject
 				$context['subject'] = $subject = ucfirst(
 					$this->translator->trans(
@@ -729,7 +680,7 @@ class UserController extends AbstractController {
 					//Send to database
 					$this->manager->flush();
 
-					//Add error message mail already exists
+					//Add created notice
 					$this->addFlash('notice', $this->translator->trans('Account created', [], $this->alias));
 
 					//Try sending message
@@ -738,8 +689,14 @@ class UserController extends AbstractController {
 						//Send message
 						$this->mailer->send($message);
 
-						//Redirect on the same route with sent=1 to cleanup form
-						return $this->redirectToRoute($request->get('_route'), ['sent' => 1]+$request->get('_route_params'));
+						//Add verification notice
+						$this->addFlash('notice', $this->translator->trans('Your verification mail has been sent, to activate your account you must follow the confirmation link inside', [], $this->alias));
+
+						//Add junk warning
+						$this->addFlash('warning', $this->translator->trans('If you did not receive a verification mail, check your Spam or Junk mail folders', [], $this->alias));
+
+						//Redirect on home route to cleanup form
+						return $this->redirectToRoute($this->config['route']['home']['name'], $this->config['route']['home']['context']);
 					//Catch obvious transport exception
 					} catch(TransportExceptionInterface $e) {
 						//Add error message mail unreachable
@@ -748,7 +705,7 @@ class UserController extends AbstractController {
 				//Catch double subscription
 				} catch (UniqueConstraintViolationException $e) {
 					//Add error message mail already exists
-					$this->addFlash('error', $this->translator->trans('Account already exists', [], $this->alias));
+					$this->addFlash('error', $this->translator->trans('The account already exists', [], $this->alias));
 				}
 			}
 		}
@@ -758,7 +715,7 @@ class UserController extends AbstractController {
 			//Template
 			$this->config['register']['view']['name'],
 			//Context
-			['register' => $form->createView(), 'sent' => $request->query->get('sent', 0)]+$this->config['register']['view']['context']
+			['register' => $form->createView()]+$this->config['register']['view']['context']
 		);
 	}
 }
