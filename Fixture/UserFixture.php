@@ -26,12 +26,12 @@ class UserFixture extends Fixture {
 	/**
 	 * Config array
 	 */
-	protected array $config;
+	private array $config;
 
 	/**
 	 * Air fixtures constructor
 	 */
-	public function __construct(protected ContainerInterface $container, protected UserPasswordHasherInterface $hasher) {
+	public function __construct(private ContainerInterface $container, private UserPasswordHasherInterface $hasher) {
 		//Retrieve config
 		$this->config = $container->getParameter(RapsysUserBundle::getAlias());
 	}
@@ -81,7 +81,7 @@ class UserFixture extends Fixture {
 			[
 				'civility' => 'Mister',
 				'group' => 'Admin',
-				'mail' => 'admin@example.com',
+				'mail' => 'contact@example.com',
 				'forename' => 'Forename',
 				'surname' => 'Surname',
 				'password' => 'test',
@@ -93,7 +93,7 @@ class UserFixture extends Fixture {
 		$users = [];
 		foreach($userTree as $userData) {
 			$user = new $this->config['class']['user']($userData['mail'], $userData['password'], $civilitys[$userData['civility']], $userData['forename'], $userData['surname'], $userData['active']);
-			#TODO: check that password is hashed correctly !!!
+			//XXX: required to store a hashed password
 			$user->setPassword($this->hasher->hashPassword($user, $userData['password']));
 			$user->addGroup($groups[$userData['group']]);
 			$manager->persist($user);
