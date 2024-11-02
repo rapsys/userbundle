@@ -1,0 +1,18 @@
+{% trans_default_domain 'rapsysuser' %}
+{% extends '@RapsysUser/mail/_base.html.twig' %}
+{% block content %}
+	<table class="content">
+		<tr>
+			<td>&nbsp;</td>
+			<td>
+				<h2>{{ subject }}</h2>
+				<h3>{% if recipient_name %}{{ 'Hi %recipient_name%,'|trans({'%recipient_name%': recipient_name}) }}{% else %}{% trans %}Hi,{% endtrans %}{% endif %}</h3>
+				<p>{{ 'Thanks so much for joining %site%:'|trans({'%site%': site}) }}</p>
+				<p><a href="{{ home_url|escape('html_attr') }}" class="link">{{ home_url }}</a></p>
+				<p>{% trans %}To create your account you must follow this link:{% endtrans %}</p>
+				<p><a href="{{ confirm_url|escape('html_attr') }}" class="link">{{ confirm_url }}</a></p>
+			</td>
+			<td>&nbsp;</td>
+		</tr>
+	</table>
+{% endblock %}

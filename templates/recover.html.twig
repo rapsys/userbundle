@@ -1,28 +1,25 @@
-{% extends '@RapsysUser/base.html.twig' %}
+{% trans_default_domain 'rapsysuser' %}
+{% extends '@RapsysUser/_base.html.twig' %}
 {% block content %}
 	<section id="rapsysuser_recover">
 		<header>
 			<h2><a href="{{ self_url }}">{{ title }}</a></h2>
 		</header>
-		{% if sent %}
-			<p class="message notice">{% trans from "rapsysuser" %}Your recover account message has been sent{% endtrans %}</p>
-		{% else %}
-			{{ form_start(recover) }}
-				<div>
-					{% if recover.mail is defined %}
-						{{ form_row(recover.mail) }}
-					{% endif %}
+		{{ form_start(recover) }}
+			<div>
+				{% if recover.mail is defined %}
+					{{ form_row(recover.mail) }}
+				{% endif %}
 
-					{% if recover.password is defined %}
-						{{ form_row(recover.password) }}
-					{% endif %}
+				{% if recover.password is defined %}
+					{{ form_row(recover.password) }}
+				{% endif %}
 
-					{{ form_row(recover.submit) }}
-				</div>
+				{{ form_row(recover.submit) }}
+			</div>
 
-				{# Render CSRF token etc .#}
-				<footer style="display:none">{{ form_rest(recover) }}</footer>
-			{{ form_end(recover) }}
-		{% endif %}
+			{# Render CSRF token etc .#}
+			<footer style="display:none">{{ form_rest(recover) }}</footer>
+		{{ form_end(recover) }}
 	</section>
 {% endblock %}

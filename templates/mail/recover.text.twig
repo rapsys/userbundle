@@ -1,0 +1,17 @@
+{% trans_default_domain 'rapsysuser' %}
+{{ subject }}
+{% for i in range(1, subject|length) %}={% endfor %}
+
+
+{{ 'Thanks so much for rejoining %site%:'|trans({'%site%': site})|raw }}
+{{ home_url }}
+
+{% trans %}To recover your account follow this link:{% endtrans %}
+
+{{ recover_url }}
+{% if copy is defined and copy %}
+
+--
+
+{{ copy.long }} - {{ copy.short }}
+{% endif %}

@@ -1,14 +1,12 @@
-{% extends '@RapsysUser/base.html.twig' %}
+{% trans_default_domain 'rapsysuser' %}
+{% extends '@RapsysUser/_base.html.twig' %}
 {% block content %}
 	<section id="rapsysuser_register">
 		<header>
 			<h2><a href="{{ self_url }}">{{ title }}</a></h2>
 		</header>
 		{% if disabled is defined and disabled %}
-			<p class="message error">{% trans from "rapsysuser" %}Your account has been disabled{% endtrans %}</p>
-		{% elseif sent is defined and sent %}
-			<p class="message notice">{% trans from "rapsysuser" %}Your verification mail has been sent, to activate your account you must follow the confirmation link inside{% endtrans %}</p>
-			<p class="message warning">{% trans from "rapsysuser" %}If you did not receive a verification mail, check your Spam or Junk mail folders{% endtrans %}</p>
+			<p class="message error">{% trans %}Your account has been disabled{% endtrans %}</p>
 		{% else %}
 			{{ form_start(register) }}
 				{% if register.mail is defined %}

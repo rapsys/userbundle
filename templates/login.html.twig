@@ -1,4 +1,5 @@
-{% extends '@RapsysUser/base.html.twig' %}
+{% trans_default_domain 'rapsysuser' %}
+{% extends '@RapsysUser/_base.html.twig' %}
 {% block content %}
 	<section id="rapsysuser_login">
 		<header>
@@ -20,7 +21,7 @@
 	{% if recover is defined %}
 		<section id="rapsysuser_recover">
 			<header>
-				<h2><a href="{{ recover_url }}">{% trans from "rapsysuser" %}Recover{% endtrans %}</a></h2>
+				<h2><a href="{{ recover_url }}">{% trans %}Recover{% endtrans %}</a></h2>
 			</header>
 			{{ form_start(recover) }}
 				<div>
