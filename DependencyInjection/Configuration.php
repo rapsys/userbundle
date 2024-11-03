@@ -39,7 +39,7 @@ class Configuration implements ConfigurationInterface {
 				'user' => 'Rapsys\\UserBundle\\Entity\\User'
 			],
 			'default' => [
-				'admin' => 'ROLE_ADMIN',
+				'admin' => 'Admin',
 				'civility' => 'Mister',
 				'languages' => [
 					'en_gb' => 'English'
