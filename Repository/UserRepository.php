@@ -26,7 +26,7 @@ class UserRepository extends Repository implements PasswordUpgraderInterface {
 	/**
 	 * Find user count as int
 	 *
-	 * @return integer The keywords count
+	 * @return integer The users count
 	 */
 	public function findCountAsInt(): int {
 		//Set the request
