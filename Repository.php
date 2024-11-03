@@ -85,9 +85,6 @@ class Repository extends EntityRepository {
 			'RapsysUserBundle:Civility' => $qs->getTableName($manager->getClassMetadata($this->config['class']['civility']), $dp),
 			'RapsysUserBundle:Group' => $qs->getTableName($manager->getClassMetadata($this->config['class']['group']), $dp),
 			'RapsysUserBundle:User' => $qs->getTableName($manager->getClassMetadata($this->config['class']['user']), $dp),
-			//Set default group
-			//XXX: or $manager->getConnection()->quote($this->config['default']['group'][0]) ???
-			':defaultgroup' => $dp->quoteStringLiteral($this->config['default']['group'][0]),
 			//Set locale
 			//XXX: or $manager->getConnection()->quote($this->locale) ???
 			':locale' => $dp->quoteStringLiteral($this->locale),
