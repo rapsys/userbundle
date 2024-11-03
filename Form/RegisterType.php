@@ -91,7 +91,7 @@ class RegisterType extends CaptchaType {
 		parent::configureOptions($resolver);
 
 		//Set defaults
-		$resolver->setDefaults(['error_bubbling' => true, 'civility' => true, 'civility_class' => 'RapsysUserBundle:Civility', 'civility_default' => null, 'mail' => true, 'password' => true, 'password_repeated' => true, 'forename' => true, 'surname' => true, 'active' => false, 'enable' => false]);
+		$resolver->setDefaults(['error_bubbling' => true, 'civility' => true, 'civility_class' => 'Rapsys\UserBundle\Entity\Civility', 'civility_default' => null, 'mail' => true, 'password' => true, 'password_repeated' => true, 'forename' => true, 'surname' => true, 'active' => false, 'enable' => false]);
 
 		//Add extra civility option
 		$resolver->setAllowedTypes('civility', 'boolean');
