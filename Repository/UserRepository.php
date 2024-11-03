@@ -32,7 +32,7 @@ class UserRepository extends Repository implements PasswordUpgraderInterface {
 		//Set the request
 		$req = <<<SQL
 SELECT COUNT(u.id) AS count
-FROM RapsysUserBundle:User AS u
+FROM Rapsys\UserBundle\Entity\User AS u
 SQL;
 
 		//Get result set mapping instance
@@ -78,9 +78,9 @@ FROM (
 		u.surname,
 		g.id AS g_id,
 		g.title AS g_title
-	FROM RapsysUserBundle:User AS u
-	LEFT JOIN RapsysUserBundle:UserGroup AS gu ON (gu.user_id = u.id)
-	LEFT JOIN RapsysUserBundle:Group AS g ON (g.id = gu.group_id)
+	FROM Rapsys\UserBundle\Entity\User AS u
+	LEFT JOIN Rapsys\UserBundle\Entity\UserGroup AS gu ON (gu.user_id = u.id)
+	LEFT JOIN Rapsys\UserBundle\Entity\Group AS g ON (g.id = gu.group_id)
 	ORDER BY NULL
 	LIMIT 0, :limit
 ) AS t
