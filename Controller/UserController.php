@@ -37,7 +37,7 @@ class UserController extends AbstractController {
 	 */
 	public function index(Request $request): Response {
 		//Without admin
-		if (!$this->checker->isGranted($this->config['default']['admin'])) {
+		if (!$this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin']))) {
 			//Throw 403
 			throw $this->createAccessDeniedException($this->translator->trans('Unable to list users', [], $this->alias));
 		}
@@ -140,7 +140,7 @@ class UserController extends AbstractController {
 		}
 
 		//Prevent access when not admin, user is not guest and not currently logged user
-		if (!$this->checker->isGranted($this->config['default']['admin']) && $user != $this->security->getUser() || !$this->checker->isGranted('IS_AUTHENTICATED_FULLY')) {
+		if (!$this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin'])) && $user != $this->security->getUser() || !$this->checker->isGranted('IS_AUTHENTICATED_FULLY')) {
 			//Throw access denied
 			//XXX: prevent slugger reverse engineering by not displaying decoded mail
 			throw $this->createAccessDeniedException($this->translator->trans('Unable to access user', [], $this->alias));
@@ -162,10 +162,10 @@ class UserController extends AbstractController {
 			'method' => 'POST',
 			//Set domain
 			'translation_domain' => $this->alias
-		]+($this->checker->isGranted($this->config['default']['admin'])?$this->config['edit']['admin']:$this->config['edit']['field']));
+		]+($this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin']))?$this->config['edit']['admin']:$this->config['edit']['field']));
 
 		//With admin role
-		if ($this->checker->isGranted($this->config['default']['admin'])) {
+		if ($this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin']))) {
 			//Create the EditType form and give the proper parameters
 			$reset = $this->factory->create($this->config['edit']['view']['reset'], $user, [
 				//Set action to edit route name and context
@@ -238,7 +238,7 @@ class UserController extends AbstractController {
 			}
 		//Without admin role
 		//XXX: prefer a reset on login to force user unspam action
-		} elseif (!$this->checker->isGranted($this->config['default']['admin'])) {
+		} elseif (!$this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin']))) {
 			//Add notice
 			$this->addFlash('notice', $this->translator->trans('To change your password login with your mail and any password then follow the procedure', [], $this->alias));
 		}
@@ -586,7 +586,7 @@ class UserController extends AbstractController {
 			'method' => 'POST',
 			//Set domain
 			'translation_domain' => $this->alias
-		]+($this->checker->isGranted($this->config['default']['admin'])?$this->config['register']['admin']:$this->config['register']['field']));
+		]+($this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin']))?$this->config['register']['admin']:$this->config['register']['field']));
 
 		//With post method
 		if ($request->isMethod('POST')) {
