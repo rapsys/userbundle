@@ -76,8 +76,8 @@ FROM (
 		u.mail,
 		u.forename,
 		u.surname,
-		IFNULL(g.id, 0) AS g_id,
-		IFNULL(g.title, :defaultgroup) AS g_title
+		g.id AS g_id,
+		g.title AS g_title
 	FROM RapsysUserBundle:User AS u
 	LEFT JOIN RapsysUserBundle:UserGroup AS gu ON (gu.user_id = u.id)
 	LEFT JOIN RapsysUserBundle:Group AS g ON (g.id = gu.group_id)
@@ -118,7 +118,7 @@ SQL;
 		//Process result
 		foreach($res as $data) {
 			//Get translated group
-			$group = $this->translator->trans($data['g_title'], [], $this->alias);
+			$group = $this->translator->trans($data['g_title']?:'Null', [], $this->alias);
 
 			//Init group subarray
 			if (!isset($ret[$group])) {
