@@ -79,12 +79,13 @@ class Repository extends EntityRepository {
 		//Set quoted table names
 		//XXX: this allow to make this code table name independent
 		//XXX: remember to place longer prefix before shorter to avoid strange replacings
+		//XXX: entity short syntax removed in doctrine/persistence 3.x: https://github.com/doctrine/orm/issues/8818
 		$tables = [
 			//Set entities
-			'RapsysUserBundle:UserGroup' => $qs->getJoinTableName($manager->getClassMetadata($this->config['class']['user'])->getAssociationMapping('groups'), $manager->getClassMetadata($this->config['class']['user']), $dp),
-			'RapsysUserBundle:Civility' => $qs->getTableName($manager->getClassMetadata($this->config['class']['civility']), $dp),
-			'RapsysUserBundle:Group' => $qs->getTableName($manager->getClassMetadata($this->config['class']['group']), $dp),
-			'RapsysUserBundle:User' => $qs->getTableName($manager->getClassMetadata($this->config['class']['user']), $dp),
+			'Rapsys\UserBundle\Entity\UserGroup' => $qs->getJoinTableName($manager->getClassMetadata($this->config['class']['user'])->getAssociationMapping('groups'), $manager->getClassMetadata($this->config['class']['user']), $dp),
+			'Rapsys\UserBundle\Entity\Civility' => $qs->getTableName($manager->getClassMetadata($this->config['class']['civility']), $dp),
+			'Rapsys\UserBundle\Entity\Group' => $qs->getTableName($manager->getClassMetadata($this->config['class']['group']), $dp),
+			'Rapsys\UserBundle\Entity\User' => $qs->getTableName($manager->getClassMetadata($this->config['class']['user']), $dp),
 			//Set locale
 			//XXX: or $manager->getConnection()->quote($this->locale) ???
 			':locale' => $dp->quoteStringLiteral($this->locale),
