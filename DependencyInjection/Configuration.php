@@ -98,7 +98,7 @@ class Configuration implements ConfigurationInterface {
 				'route' => [ 'home' => 'home_url' ],
 				'view' => [
 					'name' => '@RapsysUser/index.html.twig',
-					'context' => [ 'title' => 'Index' ]
+					'context' => [ 'title' => 'Users' ]
 				]
 			],
 			'login' => [
