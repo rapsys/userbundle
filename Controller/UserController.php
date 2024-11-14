@@ -155,7 +155,7 @@ class UserController extends AbstractController {
 			//Set civility default
 			'civility_default' => $this->doctrine->getRepository($this->config['class']['civility'])->findOneByTitle($this->config['default']['civility']),
 			//Disable mail
-			'mail' => $this->checker->isGranted('ROLE_ADMIN'),
+			'mail' => $this->checker->isGranted('ROLE_'.strtoupper($this->config['default']['admin'])),
 			//Disable password
 			'password' => false,
 			//Set method
