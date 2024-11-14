@@ -44,6 +44,12 @@ class RapsysUserExtension extends Extension {
 		//Save configuration in parameters
 		$container->setParameter($alias, $config);
 
+		//Set rapsysuser.default.admin key
+		$container->setParameter($alias.'.default.admin', $config['default']['admin']);
+
+		//Set rapsysuser.default.group key
+		$container->setParameter($alias.'.default.group', $config['default']['group']);
+
 		//Set rapsysuser.alias key
 		$container->setParameter($alias.'.alias', $alias);
 
