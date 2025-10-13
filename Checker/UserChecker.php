@@ -25,7 +25,7 @@ class UserChecker extends InMemoryUserChecker {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function checkPostAuth(UserInterface $user): void {
+	public function checkPostAuth(UserInterface $user, ?TokenInterface $token = null): void {
 		//Without User instance
 		if (!$user instanceof User) {
 			return;
