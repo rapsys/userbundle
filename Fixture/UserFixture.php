@@ -39,7 +39,7 @@ class UserFixture extends Fixture {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function load(ObjectManager $manager) {
+	public function load(ObjectManager $manager): void {
 		//Civility tree
 		$civilityTree = [
 			'Mister',
