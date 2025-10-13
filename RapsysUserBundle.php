@@ -11,8 +11,6 @@
 
 namespace Rapsys\UserBundle;
 
-use Rapsys\UserBundle\DependencyInjection\RapsysUserExtension;
-
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
