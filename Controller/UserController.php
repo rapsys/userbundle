@@ -20,6 +20,7 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\GoneHttpException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -387,7 +388,7 @@ class UserController extends AbstractController {
 			if ($pass != $this->slugger->hash($user->getPassword())) {
 				//Throw not found
 				//XXX: prevent use of outdated recover link
-				throw $this->createNotFoundException($this->translator->trans('Outdated recover link', [], $this->alias));
+				throw new GoneHttpException($this->translator->trans('Outdated recover link', [], $this->alias));
 			}
 
 			//Set context
