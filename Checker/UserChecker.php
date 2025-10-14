@@ -14,8 +14,9 @@ namespace Rapsys\UserBundle\Checker;
 use Rapsys\UserBundle\Entity\User;
 use Rapsys\UserBundle\Exception\UnactivatedException;
 
-use Symfony\Component\Security\Core\User\InMemoryUserChecker;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\DisabledException;
+use Symfony\Component\Security\Core\User\InMemoryUserChecker;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
