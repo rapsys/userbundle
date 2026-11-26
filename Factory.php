@@ -13,7 +13,7 @@ namespace Rapsys\UserBundle;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Repository\RepositoryFactory as RepositoryFactoryInterface;
-use Doctrine\Persistence\ObjectRepository;
+use Doctrine\ORM\EntityRepository;
 
 use Psr\Container\ContainerInterface;
 
@@ -48,7 +48,7 @@ class Factory implements RepositoryFactoryInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getRepository(EntityManagerInterface $entityManager, mixed $entityName): ObjectRepository {
+	public function getRepository(EntityManagerInterface $entityManager, mixed $entityName): EntityRepository {
 		//Set repository hash
 		$repositoryHash = $entityManager->getClassMetadata($entityName)->getName() . spl_object_hash($entityManager);
 
@@ -68,7 +68,7 @@ class Factory implements RepositoryFactoryInterface {
 	 * @param EntityManagerInterface $entityManager The EntityManager instance.
 	 * @param string $entityName The name of the entity.
 	 */
-	protected function createRepository(EntityManagerInterface $entityManager, string $entityName): ObjectRepository {
+	protected function createRepository(EntityManagerInterface $entityManager, string $entityName): EntityRepository {
 		//Get class metadata
 		$metadata = $entityManager->getClassMetadata($entityName);
 
