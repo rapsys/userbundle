@@ -37,17 +37,17 @@ class RegisterType extends CaptchaType {
 	public function buildForm(FormBuilderInterface $builder, array $options): void {
 		//Add extra mail field
 		if (!empty($options['mail'])) {
-			$builder->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(['message' => 'Please provide your mail']), new Email(['message' => 'Your mail doesn\'t seems to be valid'])], 'required' => true]);
+			$builder->add('mail', EmailType::class, ['attr' => ['placeholder' => 'Your mail'], 'constraints' => [new NotBlank(null, 'Please provide your mail'), new Email(null, 'Your mail doesn\'t seems to be valid')], 'required' => true]);
 		}
 
 		//Add extra password field
 		if (!empty($options['password'])) {
 			//Add password repeated field
 			if (!empty($options['password_repeated'])) {
-				$builder->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(['message' => 'Please provide your password'])]], 'required' => true]);
+				$builder->add('password', RepeatedType::class, ['type' => PasswordType::class, 'invalid_message' => 'The password and confirmation must match', 'first_options' => ['attr' => ['placeholder' => 'Your password'], 'label' => 'Password'], 'second_options' => ['attr' => ['placeholder' => 'Your password confirmation'], 'label' => 'Confirm password'], 'options' => ['constraints' => [new NotBlank(null, 'Please provide your password')]], 'required' => true]);
 			//Add password field
 			} else {
-				$builder->add('password', PasswordType::class, ['attr' => ['placeholder' => 'Your password'], 'constraints' => [new NotBlank(['message' => 'Please provide your password'])], 'required' => true]);
+				$builder->add('password', PasswordType::class, ['attr' => ['placeholder' => 'Your password'], 'constraints' => [new NotBlank(null, 'Please provide your password')], 'required' => true]);
 			}
 		}
 
