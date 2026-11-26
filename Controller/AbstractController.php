@@ -278,7 +278,7 @@ abstract class AbstractController extends BaseAbstractController implements Serv
 	 *
 	 * Renders a view
 	 */
-	protected function render(string $view, array $parameters = [], Response $response = null): Response {
+	protected function render(string $view, array $parameters = [], ?Response $response = null): Response {
 		//Create response when null
 		$response ??= new Response();
 
