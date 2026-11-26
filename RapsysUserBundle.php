@@ -62,6 +62,6 @@ class RapsysUserBundle extends Bundle {
 	 */
 	public static function getVersion(): string {
 		//Return version
-		return '0.5.8';
+		return '0.6.0';
 	}
 }
