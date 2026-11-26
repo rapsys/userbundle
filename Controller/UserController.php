@@ -13,8 +13,6 @@ namespace Rapsys\UserBundle\Controller;
 
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
-use Rapsys\UserBundle\RapsysUserBundle;
-
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -546,6 +544,7 @@ class UserController extends AbstractController {
 		if (!empty($_POST['register']['mail'])) {
 			//Log new user infos
 			$this->logger->emergency(
+				//Translated register informations
 				$this->translator->trans(
 					'register: mail=%mail% locale=%locale% confirm=%confirm% ip=%ip%',
 					[
@@ -563,7 +562,12 @@ class UserController extends AbstractController {
 						'%ip%' => $request->getClientIp()
 					],
 					$this->alias
-				)
+				),
+				//Set context
+				[
+					'file' => __FILE__,
+					'line' => __LINE__
+				]
 			);
 		}
 
