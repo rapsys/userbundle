@@ -62,7 +62,7 @@ class AuthenticationSuccessHandler extends DefaultAuthenticationSuccessHandler {
 	 */
 	public function onAuthenticationSuccess(Request $request, TokenInterface $token): Response {
 		//Set login route
-		$login = $request->get('_route');
+		$login = $request->attributes->get('_route');
 
 		//With login path option
 		if (!empty($loginPath = $this->options['login_path'])) {
