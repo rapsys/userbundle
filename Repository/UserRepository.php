@@ -48,7 +48,7 @@ SQL;
 		$rsm->addScalarResult('count', 'count', 'integer');
 
 		//Get result
-		return $this->_em
+		return $this->manager
 			->createNativeQuery($req, $rsm)
 			->getSingleScalarResult();
 	}
@@ -106,7 +106,7 @@ SQL;
 			->addScalarResult('g_title', 'g_title', 'string');
 
 		//Fetch result
-		$res = $this->_em
+		$res = $this->manager
 			->createNativeQuery($req, $rsm)
 			->setParameter('offset', $page * $count)
 			->setParameter('count', $count)
